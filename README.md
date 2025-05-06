@@ -38,3 +38,6 @@ http://localhost:8000
 - Parar containers: docker-compose down
 - cessar o shell: docker-compose exec web bash
 - Rodar testes: docker-compose exec web python core/manage.py test
+- Rodar migrações: docker-compose exec web python manage.py migrate
+
+
