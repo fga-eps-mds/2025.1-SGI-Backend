@@ -23,6 +23,20 @@ def api_auth_git(request):
     access_token = token_data.get('access_token')
     #access_token pega o token do git
 
+    user_response = request.get(
+        "https://api.github.com/user",
+        headers={'Authorization': f'token {access_token}'}
+    )
+    user_data = user_response.json()
+    #pega o nome do usuario
+
+    email_response = request.get(
+        "https://api.github.com/user/emails",
+        headers={'Authorization': f'token {access_token}'}
+    )
+    emails = email_response.json()
+    #pega o email do usuraio
+
     #precisa retornar um JWT agora depois que autentiar o token
 
 def login(request):
