@@ -17,8 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from . import models
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', models.login_page, name='login'),
+    path('/api/auth/github/', views.authLogin, name='authLogin'),
 ]

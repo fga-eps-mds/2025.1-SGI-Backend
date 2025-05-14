@@ -1,4 +1,5 @@
 from django.db import models
 
-class Usuario:
-    pass
+class User:
+    def __init__(self):
+        pass
