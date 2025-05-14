@@ -28,6 +28,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+#github OAuth
+GITHUB_CLIENT_ID = 'Ov23ligET1j33hxbkQ3A'
+GITHUB_CLIENT_SECRET = '0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
 
 # Application definition
 
