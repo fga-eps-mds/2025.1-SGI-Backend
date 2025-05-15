@@ -21,8 +21,8 @@ from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login', views.login, name='login'),
-    path('api/auth/github/', views.api_auth_git, name='api_auth_git'),
+    path('api/auth/code', views.git_auth_code, name='git_auth_code'),
+    path('api/auth/token', views.git_auth_token, name='git_code_token'),
     #path('',views.index, name='index'),
     #path('callback', views.callback, name='callback'),
     #path('auth/', include('social_django.urls', namespace='social')),  links de auth do django 

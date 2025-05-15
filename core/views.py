@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect 
 #from .models import user 
 from . import settings
+import requests
 
 
-def api_auth_git(request):
+def git_auth_token(request):
+
     gitCode = request.GET.get('code')
-    request.post(f"https://github.com/login/oauth/access_token?client_id={settings.GITHUB_CLIENT_ID}&client_secret{settings.GITHUB_CLIENT_SECRET}&code={gitCode}&redirect_uri=http://localhost:8000/api/auth/github")
-
-    acessToken_recieved = request.post(
+    
+    requestCodeToken = request.post(
     "https://github.com/login/oauth/access_token",
     data={
 
@@ -15,14 +16,15 @@ def api_auth_git(request):
         'client_id': settings.GITHUB_CLIENT_ID,
         'client_secret': settings.GITHUB_CLIENT_SECRET,
         'code': gitCode,
-        'redirect_uri': 'http://localhost:8000/api/auth/github',
+        'redirect_uri': 'http://localhost:8000/api/auth/github/',
     },
     headers={'Accept': 'application/json'}
 )
-    token_data = acessToken_recieved.json()
-    access_token = token_data.get('access_token')
-    #access_token pega o token do git
+    
+    infosJson = requestCodeToken.json()
+    tokenNumber = infosJson.get('access_token') # aqui encerra o segundo topico da US01 
 
+    """" topico 3 US01 
     user_response = request.get(
         "https://api.github.com/user",
         headers={'Authorization': f'token {access_token}'}
@@ -38,11 +40,12 @@ def api_auth_git(request):
     #pega o email do usuraio
 
     #precisa retornar um JWT agora depois que autentiar o token
+    
+    """
 
-def login(request):
-    github_auth_url = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/github")
-    return redirect(github_auth_url)
-    #redireciona para o GitHUb depois redireciona para a pagina de login
+def git_auth_code(request):
+    request.get = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/token")
+    redirect(git_auth_token)
 
 def index():
     pass
