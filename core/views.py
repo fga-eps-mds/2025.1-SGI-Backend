@@ -1,8 +1,12 @@
 from django.shortcuts import render, redirect 
-#from .models import user 
 from . import settings
+
+#verificar incompatibildiade
 import requests
 
+
+def index(request):
+    return render(request, 'teste.html')
 
 def git_auth_token(request):
 
@@ -28,9 +32,6 @@ def git_auth_token(request):
 def git_auth_code(request):
     request.get = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/token")
     redirect(git_auth_token)
-
-def index():
-    pass
 
 def create_user(request,access_token):
     #topico 3 US01 
