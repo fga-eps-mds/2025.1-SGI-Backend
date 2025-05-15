@@ -23,8 +23,17 @@ def git_auth_token(request):
     
     infosJson = requestCodeToken.json()
     tokenNumber = infosJson.get('access_token') # aqui encerra o segundo topico da US01 
+    
 
-    """" topico 3 US01 
+def git_auth_code(request):
+    request.get = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/token")
+    redirect(git_auth_token)
+
+def index():
+    pass
+
+def create_user(request,access_token):
+    #topico 3 US01 
     user_response = request.get(
         "https://api.github.com/user",
         headers={'Authorization': f'token {access_token}'}
@@ -41,11 +50,3 @@ def git_auth_token(request):
 
     #precisa retornar um JWT agora depois que autentiar o token
     
-    """
-
-def git_auth_code(request):
-    request.get = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/token")
-    redirect(git_auth_token)
-
-def index():
-    pass
