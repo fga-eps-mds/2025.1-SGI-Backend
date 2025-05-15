@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect 
 #from .models import user 
 from . import settings
-import 
 
 
 def api_auth_git(request):
+
     gitCode = request.GET.get('code')
+
     request.post(f"https://github.com/login/oauth/access_token?client_id={settings.GITHUB_CLIENT_ID}&client_secret{settings.GITHUB_CLIENT_SECRET}&code={gitCode}&redirect_uri=http://localhost:8000/api/auth/github")
 
     acessToken_recieved = request.post(
