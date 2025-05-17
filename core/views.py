@@ -4,45 +4,50 @@ from . import settings
 #verificar incompatibildiade
 import requests
 
-
+#página inicial de teste 
 def index(request):
     return render(request, 'teste.html')
 
+#recebe o code do github,troca por um access token e chama create_user
 def git_auth_token(request):
 
     gitCode = request.GET.get('code')
     
-    requestCodeToken = request.post(
+    token_response = requests.post(
     "https://github.com/login/oauth/access_token",
     data={
-
         #parametros que o github exige para conseguirmos o token 
         'client_id': settings.GITHUB_CLIENT_ID,
         'client_secret': settings.GITHUB_CLIENT_SECRET,
         'code': gitCode,
-        'redirect_uri': 'http://localhost:8000/api/auth/github/',
+        'redirect_uri': 'http://localhost:8000/api/auth/token',
     },
     headers={'Accept': 'application/json'}
 )
     
-    infosJson = requestCodeToken.json()
-    tokenNumber = infosJson.get('access_token') # aqui encerra o segundo topico da US01 
+    token_data = token_response.json()
+    access_token = token_data.get('access_token') # aqui encerra o segundo topico da US01 
+    return create_user(request, access_token)
     
-
+#redireciona o usuário para o github para autorizar o app 
 def git_auth_code(request):
-    request.get = ("https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri=http://localhost:8000/api/auth/token")
-    redirect(git_auth_token)
+    github_auth_url = (
+        f"https://github.com/login/oauth/authorize"
+        f"?client_id={settings.GITHUB_CLIENT_ID}"
+        f"&redirect_uri=http://localhost:8000/api/auth/token"
+    )
+    return redirect(github_auth_url)
 
-def create_user(request,access_token):
+def create_user(request, access_token):
     #topico 3 US01 
-    user_response = request.get(
+    user_response = requests.get(
         "https://api.github.com/user",
         headers={'Authorization': f'token {access_token}'}
     )
     user_data = user_response.json()
     #pega o nome do usuario
 
-    email_response = request.get(
+    email_response = requests.get(
         "https://api.github.com/user/emails",
         headers={'Authorization': f'token {access_token}'}
     )
