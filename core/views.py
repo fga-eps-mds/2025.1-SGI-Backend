@@ -42,7 +42,9 @@ def git_auth_token(request):
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
 
     # Aqui você pode retornar o token ou chamar a lógica de criar usuário
-    return JsonResponse({'access_token': access_token})
+    #return JsonResponse({'access_token': access_token})
+    return create_user(request,access_token)
+
 
 def create_user(request, access_token):
     # Pega dados do usuário do GitHub
@@ -67,7 +69,7 @@ def create_user(request, access_token):
             break
 
     if not email:
-        return render(request, 'error.html', {'message': 'No verified primary email found in GitHub account'})
+        return JsonResponse({'error': 'No verified primary email found in GitHub account'}, status=400)
 
     # Criar ou pegar usuário Django local
     user, created = User.objects.get_or_create(username=username, defaults={'email': email})
@@ -77,9 +79,8 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
 
-    # Pode retornar o JWT, salvar no cookie, redirecionar, etc
-    return render(request, 'token.html', {
-        'access_token': access_jwt,
-        'refresh_token': refresh_jwt,
-        'username': username
+    # ✅ Retornar os tokens como JSON
+    return JsonResponse({
+        'username': username,
+        'email': email,
     })

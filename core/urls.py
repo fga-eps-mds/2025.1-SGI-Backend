@@ -21,7 +21,7 @@ from . import views
 urlpatterns = [
     
     path('admin/', admin.site.urls),
-    path('api/auth/code', views.git_auth_code, name='git_auth_code'),
+    path('api/auth/github', views.git_auth_code, name='git_auth_code'),
     #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     path('callback', views.git_auth_token, name='callback'),
 
