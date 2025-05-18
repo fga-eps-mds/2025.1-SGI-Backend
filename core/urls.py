@@ -19,7 +19,7 @@ from django.urls import path, include
 from . import views
 
 urlpatterns = [
-    path('index', views.index, name='index'),
+    
     path('admin/', admin.site.urls),
     path('api/auth/code', views.git_auth_code, name='git_auth_code'),
     path('api/auth/token', views.git_auth_token, name='git_code_token'),
