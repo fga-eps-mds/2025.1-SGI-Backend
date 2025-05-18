@@ -3,6 +3,7 @@ from django.conf import settings
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 
 GITHUB_CLIENT_ID = 'Ov23ligET1j33hxbkQ3A'
 GITHUB_CLIENT_SECRET = '0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
@@ -17,13 +18,12 @@ def git_auth_code(request):
         f"&redirect_uri={GITHUB_REDIRECT_URI}"
         f"&scope=user:email"
     )
-    print("GitHub Auth URL:", github_auth_url)
     return redirect(github_auth_url)
 
 def git_auth_token(request):
     code = request.GET.get('code')
     if not code:
-        return render(request, 'error.html', {'message': 'No code provided by GitHub'})
+        return JsonResponse({'error': 'No code provided by GitHub'}, status=400)
 
     token_response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -39,9 +39,10 @@ def git_auth_token(request):
     token_data = token_response.json()
     access_token = token_data.get('access_token')
     if not access_token:
-        return render(request, 'error.html', {'message': 'Failed to obtain access token from GitHub'})
+        return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
 
-    return create_user(request, access_token)
+    # Aqui você pode retornar o token ou chamar a lógica de criar usuário
+    return JsonResponse({'access_token': access_token})
 
 def create_user(request, access_token):
     # Pega dados do usuário do GitHub
