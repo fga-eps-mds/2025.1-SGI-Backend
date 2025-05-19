@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 
@@ -84,3 +85,11 @@ def create_user(request, access_token):
         'username': username,
         'email': email,
     })
+
+def logout(request,access_token):
+    token_refreshed = RefreshToken(access_token)
+    token_refreshed.blacklist() 
+    
+    #nesse caso o logout ta sendo feito fazendo blacklist no token, 
+    #ainda precisa fazer os condicionais para garantir que tudo vai rodar
+    
