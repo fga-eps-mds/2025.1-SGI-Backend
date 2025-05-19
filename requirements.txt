@@ -6,4 +6,4 @@ typing_extensions==4.13.2
 djangorestframework
 djangorestframework-simplejwt
 social-auth-app-django
-
+python-decouple==3.8
