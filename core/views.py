@@ -91,17 +91,16 @@ def create_user(request, access_token):
 def blacklist(request,acess_token):
     try:
         if not acess_token:
-            return False
+            return False #não foi passado acess token
         token = RefreshToken(acess_token)
         token.blacklist()
-        return True
+        return True #sucesso na operacao de blvacklist
     except TokenError:
-        return False
+        return False #erro no token
     
-def logout(request):
-    #acess_token =   para finalizar o lgout precisa fazer com que ele consiga o acesstoken do git para poder fazer o blacklist dele 
+def logout(request,acess_token):
     if blacklist(request,acess_token):
-        return True
+        return JsonResponse({'success': True, 'message': 'Logout success'})
     else:
-        return False
+        return JsonResponse({'success': False, 'message': 'Logout failed'})
     
