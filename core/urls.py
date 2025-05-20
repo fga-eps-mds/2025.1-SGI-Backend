@@ -23,7 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/github', views.git_auth_code, name='git_auth_code'),
     path('callback', views.git_auth_token, name='callback'),
-    path('logout/', views.logout, name='logout'),
+    path('api/token/blacklist', views.blacklist, name='blacklist')
+    path('api/auth/logout/', views.logout ,name='logout'),
     
     #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     #path('callback', views.callback, name='callback'),

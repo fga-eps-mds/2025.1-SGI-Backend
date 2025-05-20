@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework_simplejwt.exceptions import TokenError
 
 GITHUB_CLIENT_ID = 'Ov23ligET1j33hxbkQ3A'
 GITHUB_CLIENT_SECRET = '0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
@@ -86,10 +87,21 @@ def create_user(request, access_token):
         'email': email,
     })
 
-def logout(request,access_token):
-    token_refreshed = RefreshToken(access_token)
-    token_refreshed.blacklist() 
+
+def blacklist(request,acess_token):
+    try:
+        if not acess_token:
+            return False
+        token = RefreshToken(acess_token)
+        token.blacklist()
+        return True
+    except TokenError:
+        return False
     
-    #nesse caso o logout ta sendo feito fazendo blacklist no token, 
-    #ainda precisa fazer os condicionais para garantir que tudo vai rodar
+def logout(request):
+    #acess_token =   para finalizar o lgout precisa fazer com que ele consiga o acesstoken do git para poder fazer o blacklist dele 
+    if blacklist(request,acess_token):
+        return True
+    else:
+        return False
     
