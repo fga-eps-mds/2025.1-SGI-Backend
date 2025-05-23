@@ -83,3 +83,6 @@ def create_user(request, access_token):
         'email': email,
 
     })
+
+def delete_user(request,acess_token):
+    return
