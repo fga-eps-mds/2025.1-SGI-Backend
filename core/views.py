@@ -4,6 +4,8 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -83,6 +85,20 @@ def create_user(request, access_token):
         'email': email,
 
     })
+    login(request,user)
 
-def delete_user(request,acess_token):
-    return
+
+def delete_user(request,access_token):
+    user_response = requests.get(
+        "https://api.github.com/user",
+        headers={'Authorization': f'token {access_token}'}
+    )
+    user_data = user_response.json()
+    username = user_data.get('login')
+
+    try:
+        user = User.objects.get(username=username)
+        user.delete()
+        return JsonResponse({"Usuário deletado com sucesso.": 1})
+    except User.DoesNotExist:
+        return JsonResponse({"Usuário nao deletado com sucesso.":2})
