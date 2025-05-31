@@ -100,13 +100,14 @@ def public_github_profile(request, username):
     if response.status_code == 404:
         return JsonResponse({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    #If they cant acess github
     if response.status_code != 200:
         return JsonResponse({'error': 'Error accessing GitHub'}, status=status.HTTP_502_BAD_GATEWAY)
 
     data = response.json()
 
     profile_data = {
-        'nome': data.get('name'),
+        'name': data.get('name'),
         'avatar_url': data.get('avatar_url'),
         'bio': data.get('bio'),
     }
