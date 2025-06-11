@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
 import requests
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -36,8 +38,10 @@ def git_auth_token(request):
     
     token_data = token_response.json()
     access_token = token_data.get('access_token')  # Pega o access token da resposta
+
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
+    request.session['jwt_token'] = access_token
 
     # Chama a função que cria o usuário com base no access token
     return create_user(request, access_token)
@@ -76,6 +80,7 @@ def create_user(request, access_token):
     refresh = RefreshToken.for_user(user)
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
+    
 
     # Retorna os dados do usuário e tokens (se quiser, pode incluir os tokens também)
     return JsonResponse({
@@ -83,3 +88,24 @@ def create_user(request, access_token):
         'email': email,
 
     })
+
+def delete_user(request):
+    access_token = request.session.get('jwt_token') 
+
+    user_response = requests.get(
+        "https://api.github.com/user",
+        headers={'Authorization': f'token {access_token}'}
+    )
+
+    if user_response.status_code != 200:
+        return JsonResponse({'error': 'Failed to fetch user data from GitHub'}, status=400)
+
+    user_data = user_response.json()
+    username = user_data.get('login')
+
+    try:
+        user = User.objects.get(username=username)
+        user.delete()
+        return JsonResponse({'message': f'User {username} deleted successfully.'})
+    except User.DoesNotExist:
+        return JsonResponse({'error': f'User {username} not found.'}, status=404)
