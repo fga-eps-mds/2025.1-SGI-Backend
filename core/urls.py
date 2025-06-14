@@ -24,6 +24,8 @@ urlpatterns = [
     path('api/auth/github', views.git_auth_code, name='git_auth_code'),
     #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     path('callback', views.git_auth_token, name='callback'),
+    path('api/users/me/', views.get_user_profile, name='get_user_profile'),
+
 
 
     #path('callback', views.callback, name='callback'),

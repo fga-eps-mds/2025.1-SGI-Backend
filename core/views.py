@@ -4,6 +4,9 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -77,9 +80,29 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
 
-    # Retorna os dados do usuário e tokens (se quiser, pode incluir os tokens também)
+        # Updates or creates the user profile
+    profile = user.profile
+    profile.avatar = user_data.get('avatar_url', '')
+    profile.bio = user_data.get('bio', '')
+    profile.save()
+
+    # Returns user data and tokens (if you want, you can include tokens as well)
     return JsonResponse({
         'username': username,
         'email': email,
 
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_profile(request):
+    user = request.user
+    profile = user.profile 
+
+    return Response({
+        "nome": user.first_name or "",
+        "username": user.username,
+        "email": user.email,
+        "avatar": profile.avatar or "",  
+        "bio": profile.bio or "",        
     })
