@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.utils import timezone
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -38,6 +39,7 @@ def git_auth_token(request):
     access_token = token_data.get('access_token')  # Pega o access token da resposta
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
+    request.session['jwt_token'] = access_token
 
     # Chama a função que cria o usuário com base no access token
     return create_user(request, access_token)
@@ -70,7 +72,8 @@ def create_user(request, access_token):
         return JsonResponse({'error': 'No verified primary email found in GitHub account'}, status=400)
 
     # Cria o usuário local (caso ainda não exista) ou pega o existente
-    user, created = User.objects.get_or_create(username=username, defaults={'email': email})
+    date = timezone.now
+    user, created = User.objects.get_or_create(username=username, defaults={'email': email,'date_joined': date})
 
     # Gera tokens JWT para o usuário (login sem senha!)
     refresh = RefreshToken.for_user(user)
@@ -83,3 +86,4 @@ def create_user(request, access_token):
         'email': email,
 
     })
+
