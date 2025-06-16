@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.utils import timezone
 
-# Redireciona o usuário para o GitHub para autorizar o acesso
+#Redirects the user to GitHub to authorize access
 def git_auth_code(request):
     github_auth_url = (
         f"https://github.com/login/oauth/authorize"
@@ -14,16 +14,16 @@ def git_auth_code(request):
         f"&redirect_uri={settings.GITHUB_REDIRECT_URI}"
         f"&scope=user:email"
     )
-    # Redireciona para a página de login/autorização do GitHub
+    # Redirects to GitHub's login/authorization page
     return redirect(github_auth_url)
 
-# Recebe o "code" do GitHub e troca por um access token
+# Receives the "code" from GitHub and exchanges it for an access tokenn
 def git_auth_token(request):
-    code = request.GET.get('code')  # Pega o code que o GitHub enviou de volta
+    code = request.GET.get('code')  # Gets the code returned by GitHub
     if not code:
         return JsonResponse({'error': 'No code provided by GitHub'}, status=400)
 
-    # Envia uma requisição para o GitHub para trocar o code por um access token
+    # Sends a request to GitHub to exchange the code for an access token
     token_response = requests.post(
         "https://github.com/login/oauth/access_token",
         data={
@@ -36,31 +36,31 @@ def git_auth_token(request):
     )
     
     token_data = token_response.json()
-    access_token = token_data.get('access_token')  # Pega o access token da resposta
+    access_token = token_data.get('access_token')  # Gets the access token from the response
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
     request.session['jwt_token'] = access_token
 
-    # Chama a função que cria o usuário com base no access token
+    #Calls the function that creates the user based on the access token
     return create_user(request, access_token)
 
-# Usa o token do GitHub para pegar dados do usuário e criar/login no Django
+# Uses the GitHub token to get user data and create/login into Django
 def create_user(request, access_token):
-    # Pega os dados básicos do usuário (como login, nome, etc.)
+    #Gets basic user data (like login, name, etc.)
     user_response = requests.get(
         "https://api.github.com/user",
         headers={'Authorization': f'token {access_token}'}
     )
     user_data = user_response.json()
 
-    # Pega a lista de e-mails do usuário
+    # Gets the user's list of emails
     email_response = requests.get(
         "https://api.github.com/user/emails",
         headers={'Authorization': f'token {access_token}'}
     )
     emails = email_response.json()
 
-    # Tenta achar o e-mail principal e verificado
+    # Tries to find the primary and verified email
     username = user_data.get('login')
     email = None
     for e in emails:
@@ -71,19 +71,22 @@ def create_user(request, access_token):
     if not email:
         return JsonResponse({'error': 'No verified primary email found in GitHub account'}, status=400)
 
-    # Cria o usuário local (caso ainda não exista) ou pega o existente
+    # Creates the local user (if not already existing) or fetches the existing one
     date = timezone.now
     user, created = User.objects.get_or_create(username=username, defaults={'email': email,'date_joined': date})
 
-    # Gera tokens JWT para o usuário (login sem senha!)
+    # Generates JWT tokens for the user (login without password!)
     refresh = RefreshToken.for_user(user)
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
 
-    # Retorna os dados do usuário e tokens (se quiser, pode incluir os tokens também)
+    # Returns user data and tokens (if desired, tokens can be included too)
     return JsonResponse({
         'username': username,
         'email': email,
 
     })
 
+
+def total_commits(request, id):
+    pass
