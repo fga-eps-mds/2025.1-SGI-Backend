@@ -24,5 +24,5 @@ urlpatterns = [
     path('api/auth/github', views.git_auth_code, name='git_auth_code'),
     path('callback', views.git_auth_token, name='callback'),
     
-    path('/api/users/<int:id>/total_commits',views.total_commits,name='total_commits')
+    path('api/users/id/total_commits',views.total_commits,name='total_commits')
 ]

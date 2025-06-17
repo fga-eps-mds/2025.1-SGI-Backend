@@ -37,9 +37,10 @@ def git_auth_token(request):
     
     token_data = token_response.json()
     access_token = token_data.get('access_token')  # Gets the access token from the response
+    request.session['token'] = access_token
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
-    request.session['jwt_token'] = access_token
+
 
     #Calls the function that creates the user based on the access token
     return create_user(request, access_token)
@@ -62,6 +63,7 @@ def create_user(request, access_token):
 
     # Tries to find the primary and verified email
     username = user_data.get('login')
+    request.session['username'] = username
     email = None
     for e in emails:
         if e.get('primary') and e.get('verified'):
@@ -72,7 +74,7 @@ def create_user(request, access_token):
         return JsonResponse({'error': 'No verified primary email found in GitHub account'}, status=400)
 
     # Creates the local user (if not already existing) or fetches the existing one
-    date = timezone.now
+    date = timezone.now()
     user, created = User.objects.get_or_create(username=username, defaults={'email': email,'date_joined': date})
 
     # Generates JWT tokens for the user (login without password!)
@@ -88,5 +90,10 @@ def create_user(request, access_token):
     })
 
 
-def total_commits(request, id):
+import requests
+from django.http import JsonResponse
+
+def total_commits(request):
+    username = request.session.get('username')
+    token = request.session.get('token')
     pass
