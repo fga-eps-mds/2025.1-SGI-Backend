@@ -96,4 +96,6 @@ from django.http import JsonResponse
 def total_commits(request):
     username = request.session.get('username')
     token = request.session.get('token')
-    pass
+    user = User.objects.get(username=username)
+    date = user.date_joined
+    return JsonResponse({'date_joined': date})
