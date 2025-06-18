@@ -98,31 +98,23 @@ def total_commits(request):
     token = request.session.get('token')
     user = User.objects.get(username=username)
     date = user.date_joined
+   
 
 
     headers = {'Authorization': f'bearer {token}',
                'Content-Type': 'application/json'}
     
     # GraphQL api query to get the commits  of the user
-    query = """
-    {
-      viewer {
-        contributionsCollection {
-          commitContributionsByRepository(maxRepositories: 100) {
-            repository {
-              name
-              owner {
-                login
-              }
-            }
-            contributions {
-              totalCount
-            }
-          }
-        }
-      }
-    }
-    """
+
+
+    query = f"""
+    {{
+    viewer {{
+        contributionsCollection(from:"{date}") {{
+        totalCommitContributions
+        }}
+    }} 
+    }} """
     # send a post request to the GitHub GraphQL api
 
     response = requests.post(
@@ -138,21 +130,15 @@ def total_commits(request):
     data = response.json()
  
     
-    contribs = data.get('data', {}) \
+    total = data.get('data', {}) \
                     .get('viewer', {}) \
                    .get('contributionsCollection', {}) \
-                   .get('commitContributionsByRepository', [])
+                   .get('totalCommitContributions', 0)
     
-    total_commits = 0
-    # iterate on dictionary of dictionaries to get the total commits
-    for repo_info in contribs:
-        commits_count = repo_info['contributions']['totalCount']
-        total_commits += commits_count
 
-        
 
     return JsonResponse({
         'usuario': username,
-        'total_commits': total_commits,
+        'total_commits': total
 
     })
