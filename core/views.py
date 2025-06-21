@@ -2,9 +2,9 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 import requests
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
 
@@ -39,8 +39,10 @@ def git_auth_token(request):
     
     token_data = token_response.json()
     access_token = token_data.get('access_token')  # Pega o access token da resposta
+
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
+    request.session['jwt_token'] = access_token
 
     # Chama a função que cria o usuário com base no access token
     return create_user(request, access_token)
@@ -79,6 +81,7 @@ def create_user(request, access_token):
     refresh = RefreshToken.for_user(user)
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
+    
 
     # Retornar os tokens como JSON
     return JsonResponse({
@@ -87,6 +90,39 @@ def create_user(request, access_token):
         'access_token': access_jwt,
         'refresh_token': refresh_jwt,
     })
+
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
+def delete_user(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    # Pegar o token JWT do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Authorization token required'}, status=401)
+    
+    jwt_token = auth_header.split(' ')[1]
+    
+    try:
+        # Decodificar o JWT para pegar informações do usuário
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = AccessToken(jwt_token)
+        user_id = token['user_id']
+        
+        # Buscar o usuário pelo ID
+        user = User.objects.get(id=user_id)
+        username = user.username
+        
+        # Deletar o usuário
+        user.delete()
+        return JsonResponse({'message': f'User {username} deleted successfully.'})
+        
+    except TokenError:
+        return JsonResponse({'error': 'Invalid or expired token'}, status=401)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete user: {str(e)}'}, status=500)
 
 def blacklist(request,acess_token):
     try:
