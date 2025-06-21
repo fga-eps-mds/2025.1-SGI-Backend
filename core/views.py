@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
 import requests
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+from django.views.decorators.csrf import csrf_exempt
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -82,11 +83,12 @@ def create_user(request, access_token):
     refresh_jwt = str(refresh)
     
 
-    # Retorna os dados do usuário e tokens (se quiser, pode incluir os tokens também)
+    # Retornar os tokens como JSON
     return JsonResponse({
         'username': username,
         'email': email,
-
+        'access_token': access_jwt,
+        'refresh_token': refresh_jwt,
     })
 
 def delete_user(request):
@@ -109,3 +111,32 @@ def delete_user(request):
         return JsonResponse({'message': f'User {username} deleted successfully.'})
     except User.DoesNotExist:
         return JsonResponse({'error': f'User {username} not found.'}, status=404)
+def blacklist(request,acess_token):
+    try:
+        if not acess_token:
+            return False
+        token = RefreshToken(acess_token)
+        token.blacklist()
+        return True
+    except TokenError:
+        return False
+    
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
+def logout(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+    
+    # Pegar o token do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'success': False, 'message': 'Token not provided'}, status=400)
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # Usando o RefreshToken para invalidar o token
+        refresh_token = RefreshToken(token)
+        refresh_token.blacklist()
+        return JsonResponse({'success': True, 'message': 'Logout successful'})
+    except TokenError as e:
+        return JsonResponse({'success': False, 'message': f'Invalid token: {str(e)}'}, status=400)
