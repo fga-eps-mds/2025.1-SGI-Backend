@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include 
 from . import views
+from .views import public_github_profile
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +25,5 @@ urlpatterns = [
     path('callback/', views.git_auth_token, name='callback'),
     path('api/auth/logout/', views.logout, name='logout'),
     path('DELETE/api/users/me/', views.delete_user,name='delete_user'),
+    path('api/users/<str:username>/', public_github_profile),
 ]

@@ -4,7 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
 
@@ -91,6 +91,29 @@ def create_user(request, access_token):
         'refresh_token': refresh_jwt,
     })
 
+def public_github_profile(request, username):
+    
+    #Access public data from github
+    github_api_url = f"https://api.github.com/users/{username}"
+    response = requests.get(github_api_url)
+
+    #If the user not exist
+    if response.status_code == 404:
+        return JsonResponse({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    #If they cant acess github
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error accessing GitHub'}, status=status.HTTP_502_BAD_GATEWAY)
+
+    data = response.json()
+
+    profile_data = {
+        'name': data.get('name'),
+        'avatar_url': data.get('avatar_url'),
+        'bio': data.get('bio'),
+    }
+
+    return JsonResponse(profile_data)
 @csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
 def delete_user(request):
     if request.method != 'DELETE':
