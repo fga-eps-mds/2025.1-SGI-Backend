@@ -6,6 +6,7 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from rest_framework_simplejwt.exceptions import TokenError
+from django.views.decorators.csrf import csrf_exempt
 
 GITHUB_CLIENT_ID = 'Ov23ligET1j33hxbkQ3A'
 GITHUB_CLIENT_SECRET = '0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
@@ -81,26 +82,40 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
 
-    # ✅ Retornar os tokens como JSON
+    # Retornar os tokens como JSON
     return JsonResponse({
         'username': username,
         'email': email,
+        'access_token': access_jwt,
+        'refresh_token': refresh_jwt,
     })
-
 
 def blacklist(request,acess_token):
     try:
         if not acess_token:
-            return False #não foi passado acess token
+            return False
         token = RefreshToken(acess_token)
         token.blacklist()
-        return True #sucesso na operacao de blvacklist
+        return True
     except TokenError:
-        return False #erro no token
+        return False
     
-def logout(request,acess_token):
-    if blacklist(request,acess_token):
-        return JsonResponse({'success': True, 'message': 'Logout success'})
-    else:
-        return JsonResponse({'success': False, 'message': 'Logout failed'})
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
+def logout(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
     
+    # Pegar o token do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'success': False, 'message': 'Token not provided'}, status=400)
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # Usando o RefreshToken para invalidar o token
+        refresh_token = RefreshToken(token)
+        refresh_token.blacklist()
+        return JsonResponse({'success': True, 'message': 'Logout successful'})
+    except TokenError as e:
+        return JsonResponse({'success': False, 'message': f'Invalid token: {str(e)}'}, status=400)
