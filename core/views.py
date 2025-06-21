@@ -91,26 +91,39 @@ def create_user(request, access_token):
         'refresh_token': refresh_jwt,
     })
 
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
 def delete_user(request):
-    access_token = request.session.get('jwt_token') 
-
-    user_response = requests.get(
-        "https://api.github.com/user",
-        headers={'Authorization': f'token {access_token}'}
-    )
-
-    if user_response.status_code != 200:
-        return JsonResponse({'error': 'Failed to fetch user data from GitHub'}, status=400)
-
-    user_data = user_response.json()
-    username = user_data.get('login')
-
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    # Pegar o token JWT do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Authorization token required'}, status=401)
+    
+    jwt_token = auth_header.split(' ')[1]
+    
     try:
-        user = User.objects.get(username=username)
+        # Decodificar o JWT para pegar informações do usuário
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = AccessToken(jwt_token)
+        user_id = token['user_id']
+        
+        # Buscar o usuário pelo ID
+        user = User.objects.get(id=user_id)
+        username = user.username
+        
+        # Deletar o usuário
         user.delete()
         return JsonResponse({'message': f'User {username} deleted successfully.'})
+        
+    except TokenError:
+        return JsonResponse({'error': 'Invalid or expired token'}, status=401)
     except User.DoesNotExist:
-        return JsonResponse({'error': f'User {username} not found.'}, status=404)
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete user: {str(e)}'}, status=500)
+
 def blacklist(request,acess_token):
     try:
         if not acess_token:
