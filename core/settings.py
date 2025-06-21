@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,11 +30,10 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 #github OAuth
-GITHUB_CLIENT_ID = 'Ov23ligET1j33hxbkQ3A'
-GITHUB_CLIENT_SECRET = '0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
-GITHUB_REDIRECT_URI = "http://localhost:8000/callback"
 
-
+GITHUB_CLIENT_ID = config('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = config('GITHUB_CLIENT_SECRET')
+GITHUB_REDIRECT_URI = config('GITHUB_REDIRECT_URI')
 # Application definition
 
 INSTALLED_APPS = [

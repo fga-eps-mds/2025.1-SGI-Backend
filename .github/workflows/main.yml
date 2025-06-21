@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+    branches:
+      - main
+      - devel
+
+jobs:
+  build:
+    name: Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+
+      - name: Creating .env
+        run: |
+          cat <<EOF > .env
+          GITHUB_CLIENT_ID='Ov23ligET1j33hxbkQ3A'
+          GITHUB_CLIENT_SECRET='0c826bbb7c84292ec3dd466ffe92de9dbfa1bd2e'
+          EOF
+
+      - name: Run docker compose
+        run: docker compose up -d --build
+
+      - name: Wait building
+        run: sleep 5 
+
+      - name: Closing containers
+        if: always()
+        run: docker compose down
