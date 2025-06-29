@@ -5,6 +5,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.utils import timezone
+from .models import CommitScore, UserScore
+from django.db import transaction  
+#from rest_framework.permissions import IsAuthenticated # Importa a permissão que restringe o acesso da view apenas a usuários autenticados
+
+
 
 #Redirects the user to GitHub to authorize access
 def git_auth_code(request):
@@ -142,3 +147,91 @@ def total_commits(request):
         'total_commits': total
 
     })
+
+# Pontuar commits
+def pontuar_commits(request):
+    try:
+        username = request.session.get('username')
+        token = request.session.get('token')
+        
+        # Verificação de autenticação
+        if not username or not token:
+            return JsonResponse({'error': 'Usuário não autenticado'}, status=401)
+        
+        # Busca o usuário no banco de dados 
+        user = User.objects.get(username=username)
+        since = user.date_joined.isoformat()
+        
+        # Prepara headers para as requisições à API do GitHub
+        headers = {'Authorization': f'token {token}'}
+        
+        owner = username
+        repos_url = f'https://api.github.com/users/{owner}/repos'
+        repos_response = requests.get(repos_url, headers=headers)
+
+        if repos_response.status_code != 200:
+            return JsonResponse({'error': 'Erro ao buscar repositórios'}, status=500)
+
+        pontos_por_commit = 10
+        pontos_totais = 0
+        pontuados = []
+
+        with transaction.atomic():  # Garante integridade das operações
+            # Cria ou obtém o UserScore uma única vez
+            user_score, _ = UserScore.objects.get_or_create(user=user)
+            
+            for repo in repos_response.json():
+                repo_name = repo['name']
+                commits_url = f'https://api.github.com/repos/{owner}/{repo_name}/commits?since={since}'
+                commits_response = requests.get(commits_url, headers=headers)
+
+                if commits_response.status_code != 200:
+                    continue
+
+                for commit in commits_response.json():
+                    sha = commit.get('sha')
+                    if not sha:
+                        continue
+
+                    # Busca dados do autor do commit
+                    commit_author = commit.get('commit', {}).get('author', {})
+                    author_email = commit_author.get('email')
+
+                    if not author_email:
+                        continue
+
+                    try:
+                        # Verifica se autor está registrado no GitFica
+                        author_user = User.objects.get(email=author_email)
+
+                        # Evita pontuar duas vezes o mesmo commit
+                        if CommitScore.objects.filter(commit_sha=sha).exists():
+                            continue
+
+                        CommitScore.objects.create(user=author_user, commit_sha=sha)
+
+                        # Garante que o autor tenha UserScore
+                        user_score, _ = UserScore.objects.get_or_create(user=author_user)
+                        user_score.total_points += pontos_por_commit
+                        user_score.save()
+
+                        # Soma total da sessão, agrupado por autor
+                        pontuados[author_user.username] = pontuados.get(author_user.username, 0) + pontos_por_commit
+                        if author_user == user:
+                            novos_pontos += pontos_por_commit
+
+                    except User.DoesNotExist:
+                        # Se o autor não está registrado, ignora
+                        continue
+
+        return JsonResponse({
+            'usuario': username,
+            'novos_pontos': pontos_totais,
+            'usuarios_pontuados': pontuados,
+            'total_pontos': user_score.total_points, 
+        })
+
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Usuário não encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
