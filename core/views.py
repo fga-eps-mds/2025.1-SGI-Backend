@@ -88,10 +88,11 @@ def total_issues(request):
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
+    date = user.date_joined
 
     query = f"""
     {{
-    search(query: "author:{user} type:issue", type: ISSUE, first: 1) {{
+    search(query: "author:{user} type:issue created:>={date}", type: ISSUE, first: 1) {{
         issueCount
     }}
     }}
