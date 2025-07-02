@@ -83,3 +83,30 @@ def create_user(request, access_token):
         'email': email,
 
     })
+
+def total_issues(request):
+    username = request.session.get('username')
+    token = request.session.get('token')
+    user = User.objects.get(username=username)
+
+    query = f"""
+    {{
+    search(query: "author:{user} type:issue", type: ISSUE, first: 1) {{
+        issueCount
+    }}
+    }}
+    """
+
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    data = response.json()
+    total_issues = data['data']['search']['issueCount']
+    return JsonResponse({
+        'username': username,
+        'total_issues': total_issues
+    })
