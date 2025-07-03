@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from core.models import Profile
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -87,12 +88,22 @@ def create_user(request, access_token):
 def total_issues(request):
     username = request.session.get('username')
     token = request.session.get('token')
-    user = User.objects.get(username=username)
+
+    if not username or not token:
+        return JsonResponse({'error': 'invalid'}, status=400)
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    profile, created = Profile.objects.get_or_create(user=user)
+
     date = user.date_joined
 
     query = f"""
     {{
-    search(query: "author:{user} type:issue created:>={date}", type: ISSUE, first: 1) {{
+    search(query: "author:{username} type:issue created:>={date}", type: ISSUE, first: 1) {{
         issueCount
     }}
     }}
@@ -107,7 +118,29 @@ def total_issues(request):
 
     data = response.json()
     total_issues = data['data']['search']['issueCount']
+
+    query2 = f"""
+    {{
+    search(query: "author:{username} type:issue state:closed created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+    }}
+    }}
+    """
+
+    response2 = requests.post("https://api.github.com/graphql", json={"query": query2}, headers=headers)
+
+    data2 = response2.json()
+    total_issues_closed = data2['data']['search']['issueCount']
+    profile.pontuacao_issues = total_issues_closed * 10
+    profile.save()
+
+
+
+
     return JsonResponse({
         'username': username,
-        'total_issues': total_issues
+        'total_issues': total_issues,
+        'total_issues_closed': total_issues_closed,
+        'pontuação_issues': profile.pontuacao_issues,
     })
+
