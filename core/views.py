@@ -5,7 +5,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.utils import timezone
-from core.models import Profile 
 
 #Redirects the user to GitHub to authorize access
 def git_auth_code(request):
@@ -90,6 +89,8 @@ def create_user(request, access_token):
 
     })
 
+import requests
+from django.http import JsonResponse
 
 def total_commits(request):
     username = request.session.get('username')
@@ -97,8 +98,6 @@ def total_commits(request):
     user = User.objects.get(username=username)
     date = user.date_joined
    
-   # Creates the profile associated with the user to store the score
-    profile, created = Profile.objects.get_or_create(user=user)
 
     headers = {'Authorization': f'bearer {token}',
                'Content-Type': 'application/json'}
@@ -134,13 +133,8 @@ def total_commits(request):
                    .get('contributionsCollection', {}) \
                    .get('totalCommitContributions', 0)
 
-# calculates the score and saves in the profile
-    profile.pontuacao_commits = total *10
-    profile.save()
-
     return JsonResponse({
         'usuario': username,
         'total_commits': total, 
-        'pontuacao_commits':profile.pontuacao_commits
-
+        
     })
