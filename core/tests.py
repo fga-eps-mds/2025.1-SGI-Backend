@@ -13,13 +13,13 @@ class TestsGitFIca(APITestCase):
         self.client = APIClient()
     
     #teste pra quando o blacklist recebe um gwt invalido
-    def blacklist_false_token(self):
+    def test_blacklist_false_token(self):
         invalid_token = 'testetesteteste'
         result = blacklist(None, invalid_token)
         self.assertFalse(result)
         
     #teste pra jwt valido 
-    def blacklist_token_correct(self):
+    def test_blacklist_token_correct(self):
         testJwt = RefreshToken.for_user(self.user) #Essa função vai emular um jwt válido pra testar se o blacklist ta funcionando certinho 
         result = blacklist(None, str(testJwt))
         self.assertTrue(result)
