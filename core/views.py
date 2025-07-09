@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from core.models import Profile
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -57,6 +58,8 @@ def create_user(request, access_token):
         headers={'Authorization': f'token {access_token}'}
     )
     emails = email_response.json()
+    request.session['username'] = username
+    request.session['token'] = access_token 
 
     # Tenta achar o e-mail principal e verificado
     username = user_data.get('login')
@@ -89,7 +92,7 @@ def total_merges(request):
     token = request.session.get('token')
     user = User.objects.get(username=username)
     date = user.date_joined
-
+    profile, created = Profile.objects.get_or_create(user=user)
     query = f"""
     query {{
       search(query: "is:pr is:merged merged-by:{username} created:>={date}", type: ISSUE, first: 1) {{
@@ -108,6 +111,10 @@ def total_merges(request):
     data = response.json()
     total_merge = data["data"]["search"]["issueCount"]
 
+    profile.pontos_merge = total_merge * 10
+    profile.save()
+
     return JsonResponse({
-        'total_merges':total_merge
+        'total_merges':total_merge,
+        'pontos_merge': profile.pontos_merge,
     })
