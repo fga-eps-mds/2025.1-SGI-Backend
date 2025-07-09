@@ -31,3 +31,17 @@ class TestsGitFIca(APITestCase):
     def test_user_profile_no_auutentication(self):
         response = self.client.get('/api/users/me/')  
         self.assertEqual(response.status_code, 401)
+    
+    #teste para usuario autenticado 
+    def test_get_user_profile_autenticated(self):
+        # simulando autenticação do usuario
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        
+        response = self.client.get('/api/users/me/') 
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['nome'], 'Test')
+        self.assertEqual(data['username'], 'teste')
+        self.assertEqual(data['email'], 'test@teste.com')
+        self.assertEqual(data['avatar'], '')
+        self.assertEqual(data['bio'], 'teste')
