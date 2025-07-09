@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from core.models import Profile
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -71,6 +72,8 @@ def create_user(request, access_token):
 
     # Cria o usuário local (caso ainda não exista) ou pega o existente
     user, created = User.objects.get_or_create(username=username, defaults={'email': email})
+    request.session['username'] = username
+    request.session['token'] = access_token 
 
     # Gera tokens JWT para o usuário (login sem senha!)
     refresh = RefreshToken.for_user(user)
@@ -89,7 +92,7 @@ def total_prs(request):
     token = request.session.get('token')
     user = User.objects.get(username=username)
     date = user.date_joined
-
+    profile, created = Profile.objects.get_or_create(user=user)
     query = f"""
     query {{
       search(query: "is:pr is:open author:{username} created:>={date}", type: ISSUE, first: 1) {{
@@ -107,6 +110,8 @@ def total_prs(request):
 
     data = response.json()
     totalpr = data["data"]["search"]["issueCount"]
+    profile.pontos_prs_abertos = totalpr*10
+    profile.save()
 
     return JsonResponse({
         'total_pr':totalpr
