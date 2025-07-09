@@ -11,3 +11,8 @@ class TestsGitFIca(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123')
         self.client = APIClient()
+        
+    def blacklist_false_token(self):
+        invalid_token = 'testetesteteste'
+        result = blacklist(None, invalid_token)
+        self.assertFalse(result)
