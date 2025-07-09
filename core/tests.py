@@ -26,3 +26,12 @@ class TestsGitFIca(APITestCase):
         response = self.client.delete('/DELETE/api/users/me/')
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()['error'], 'Authorization token required')
+    
+    #Teste pra chamadas com token mas token inválido
+    def test_deleteuser_token_error(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testeinvalidd')
+        response = self.client.delete('/DELETE/api/users/me/')
+        self.assertEqual(response.status_code, 401)
+        self.assertIn('Invalid', response.json()['error'])
+        
+    
