@@ -26,3 +26,8 @@ class TestsGitFIca(APITestCase):
             bio='teste'
         )
         self.refresh = RefreshToken.for_user(self.user)
+    
+    #teste pra solicitaçao sem ter o usuario autenticado no programa 
+    def test_user_profile_no_auutentication(self):
+        response = self.client.get('/api/users/me/')  
+        self.assertEqual(response.status_code, 401)
