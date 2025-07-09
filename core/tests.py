@@ -23,5 +23,10 @@ class TestsGitFIca(APITestCase):
         testJwt = RefreshToken.for_user(self.user) #Essa função vai emular um jwt válido pra testar se o blacklist ta funcionando certinho 
         result = blacklist(None, str(testJwt))
         self.assertTrue(result)
-        
+    
+    #Teste para qualquer tipo de metodo que não seja o post que foi definido la no logout     
+    def test_logout_methoderror(self):
+        response = self.client.get('/api/auth/logout')
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.json()['success'], False)
         
