@@ -42,3 +42,13 @@ class TestsGitFIca(APITestCase):
         response = self.client.post('/api/auth/logout/')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['success'], False)
+        
+    #teste pra token valido no logout 
+    def test_logout_token_correct(self):
+        testJwt = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(testJwt)}')
+
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], True)
+        self.assertEqual(response.json()['message'], 'Logout successful')
