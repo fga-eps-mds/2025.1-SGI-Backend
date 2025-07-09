@@ -13,3 +13,10 @@ class TestsGitFIca(APITestCase):
         self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
         self.refresh = RefreshToken.for_user(self.user)
         self.client = APIClient()
+        
+    #teste para metodos diferentes do delete
+    def test_deleteuser_method_error(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        response = self.client.get('/DELETE/api/users/me/') 
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.json()['error'], 'Method not allowed')
