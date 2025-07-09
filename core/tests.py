@@ -30,3 +30,9 @@ class TestsGitFIca(APITestCase):
         self.assertEqual(response.status_code, 405)
         self.assertEqual(response.json()['success'], False)
         
+    #teste para quando da o erro token not provided la no logout 
+    def test_logout_token_error(self):
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['success'], False)
+        
