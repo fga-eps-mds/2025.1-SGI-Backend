@@ -34,4 +34,13 @@ class TestsGitFIca(APITestCase):
         self.assertEqual(response.status_code, 401)
         self.assertIn('Invalid', response.json()['error'])
         
+    #teste para chamadas com token válido 
+    def test_delete_user_with_valid_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        response = self.client.delete('/DELETE/api/users/me/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('message', response.json())
+        self.assertEqual(User.objects.filter(username='testuser').exists(), False)
+
     
