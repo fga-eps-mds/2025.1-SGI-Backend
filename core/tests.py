@@ -10,5 +10,6 @@ class TestsGitFIca(APITestCase):
     
     #inicialização e configuração base pros testes do django test
     def setUp(self):
-        
+        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
+        self.refresh = RefreshToken.for_user(self.user)
         self.client = APIClient()
