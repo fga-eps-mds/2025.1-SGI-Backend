@@ -92,7 +92,7 @@ def total_prs_closed(request):
 
     query = f"""
     query {{
-      search(query: "is:pr is:closed -is:merged author:{username} created:>={date}", type: ISSUE, first: 1) {{
+      search(query: "is:pr is:open review:approved author:{username} created:>={date}", type: ISSUE, first: 1) {{
         issueCount
       }}
     }}
