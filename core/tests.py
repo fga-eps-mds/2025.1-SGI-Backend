@@ -36,3 +36,9 @@ class TestsGitFIca(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['success'], False)
         
+    #teste pra quando é enviado um gwt invalido pro logout 
+    def test_logout_token_invalid(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer tokeninvalidotesteteste')
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['success'], False)
