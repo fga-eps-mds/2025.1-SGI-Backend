@@ -20,3 +20,9 @@ class TestsGitFIca(APITestCase):
         response = self.client.get('/DELETE/api/users/me/') 
         self.assertEqual(response.status_code, 405)
         self.assertEqual(response.json()['error'], 'Method not allowed')
+        
+    #teste para chamadas sem nenhum token
+    def test_deleteuser_no_token(self):
+        response = self.client.delete('/DELETE/api/users/me/')
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['error'], 'Authorization token required')
