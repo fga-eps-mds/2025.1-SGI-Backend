@@ -84,7 +84,7 @@ def create_user(request, access_token):
 
     })
 
-def total_prs(request):
+def total_prs_closed(request):
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
@@ -92,7 +92,7 @@ def total_prs(request):
 
     query = f"""
     query {{
-      search(query: "is:pr is:open author:{username} created:>={date}", type: ISSUE, first: 1) {{
+      search(query: "is:pr is:closed -is:merged author:{username} created:>={date}", type: ISSUE, first: 1) {{
         issueCount
       }}
     }}
@@ -106,8 +106,8 @@ def total_prs(request):
     response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
 
     data = response.json()
-    totalpr = data["data"]["search"]["issueCount"]
+    totalprclosed = data["data"]["search"]["issueCount"]
 
     return JsonResponse({
-        'total_pr':totalpr
+        'total_pr_fechados':totalprclosed
     })
