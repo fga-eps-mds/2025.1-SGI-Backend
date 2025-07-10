@@ -1,4 +1,4 @@
-#!/home/jackes/dev/2025.1-SGI-Backend/venv/bin/python3
+#!/home/pedro/Documents/2025.1-SGI-Backend/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
