@@ -139,7 +139,7 @@ def total_issues(request):
     total_issues_closed = data2['data']['search']['issueCount']
     
     #Calculates the score based on closed issues
-    profile.pontuacao_issues = total_issues_closed * 10
+    profile.score_issues = total_issues_closed * 10
     profile.save()
 
    
@@ -147,6 +147,6 @@ def total_issues(request):
         'username': username,
         'total_issues': total_issues,
         'total_issues_closed': total_issues_closed,
-        'pontuação_issues': profile.pontuacao_issues,
+        'pontuação_issues': profile.score_issues,
     })
 

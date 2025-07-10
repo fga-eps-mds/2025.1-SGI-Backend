@@ -47,6 +47,31 @@ class MockResponse:
     def __init__(self, json_data, status_code):
         self._json = json_data
         self.status_code = status_code
-
     def json(self):
         return self._json
+    
+class ProfileModelTest(TestCase):
+    def test_create_profile_with_default_score(self):
+        #Create a test user
+        user = User.objects.create_user(username='user_test', password='12345')
+
+        #Create a related Profile
+        profile = Profile.objects.create(user=user)
+
+        #Tests if the Profile was created correctly
+        self.assertEqual(profile.user.username, 'user_test')
+
+        #Checks if the score starts with 0
+        self.assertEqual(profile.pontuacao_issues, 0)
+
+    def test_update_pontuacao_issues(self):
+        user = User.objects.create_user(username='user_test2', password='abc123')
+        profile = Profile.objects.create(user=user)
+
+        #Update the score
+        profile.pontuacao_issues = 50
+        profile.save()
+
+        #Recover again and test
+        updated = Profile.objects.get(user=user)
+        self.assertEqual(updated.pontuacao_issues, 50)
