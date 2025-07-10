@@ -11,6 +11,16 @@ class TestsGitFIca(TestCase):
         mock_response = mock_get.return_value
         mock_response.status_code = 500
 
-        response = self.client.get('/api/users/octocat/')
+        response = self.client.get('/api/users/teste/')
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json()['error'], 'Error accessing GitHub')
+        
+    #testes para quando api funciona corretamente mas não econtra nenhum usuario publico 
+    @patch('core.views.requests.get')
+    def test_github_user_error(self, mock_get):
+        mock_response = mock_get.return_value
+        mock_response.status_code = 404
+
+        response = self.client.get('/api/users/teste/')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['error'], 'User not found')
