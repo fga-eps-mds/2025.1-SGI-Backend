@@ -5,9 +5,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 import calendar
-from datetime import datetime
+import datetime
 from collections import defaultdict
 from django.utils.timezone import localtime
+from django.utils import timezone
 
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
@@ -89,76 +90,12 @@ def create_user(request, access_token):
 
     })
 
-def totalCommitsMes(request):
+def issues_por_mes(request):
     username = request.session.get('username')
     token = request.session.get('token')
+    user = User.objects.get(username=username)
 
-    if not username or not token:
-        return JsonResponse({'error': 'Usuário não autenticado'}, status=401)
+    start = user.date_joined.date().replace(day=1)  
+    today = timezone.now().date().replace(day=1)    
 
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return JsonResponse({'error': 'Usuário não encontrado'}, status=404)
-
-    date_joined = user.date_joined.isoformat()
-
-    
-    query = f"""
-    query {{
-      user(login: "{username}") {{
-        contributionsCollection(from: "{date_joined}") {{
-          commitContributionsByRepository(maxRepositories: 100) {{
-            repository {{
-              name
-            }}
-            contributions(first: 100) {{
-              nodes {{
-                occurredAt
-              }}
-            }}
-          }}
-        }}
-      }}
-    }}
-    """
-
-    headers = {
-        "Authorization": f"bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
-
-    if response.status_code != 200:
-        return JsonResponse({'error': 'Erro na requisição ao GitHub'}, status=500)
-
-    try:
-        contribs = response.json()["data"]["user"]["contributionsCollection"]["commitContributionsByRepository"]
-    except (KeyError, TypeError):
-        return JsonResponse({'error': 'Erro ao processar resposta do GitHub'}, status=500)
-
-    
-    commitsMes = defaultdict(int)
-    for repo_contrib in contribs:
-        for node in repo_contrib["contributions"]["nodes"]:
-            data_iso = node["occurredAt"]
-            try:
-                dt = datetime.fromisoformat(data_iso.replace('Z', '+00:00'))
-                dt_local = localtime(dt)
-                chave = (dt_local.year, dt_local.month)
-                commitsMes[chave] += 1
-            except ValueError:
-                continue 
-
-    resultado = [
-        {
-            "mes": calendar.month_name[mes].lower(),
-            "ano": ano,
-            "commits": qtd
-        }
-        for (ano, mes), qtd in sorted(commitsMes.items())
-    ]
-
-    return JsonResponse({"total_commits_por_mes": resultado})
 
