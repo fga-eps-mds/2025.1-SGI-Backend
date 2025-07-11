@@ -108,7 +108,7 @@ def totalCommitsMes(request):
     query {{
       user(login: "{username}") {{
         contributionsCollection {{
-          commitContributionsByRepository(maxRepositories: 1000) {{
+          commitContributionsByRepository(maxRepositories: 100) {{
             repository {{
               name
             }}
@@ -129,8 +129,6 @@ def totalCommitsMes(request):
     }
 
     response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
-
-    #print(response.json())
 
     if response.status_code != 200:
         return JsonResponse({'error': 'Erro na requisição ao GitHub'}, status=500)
