@@ -90,7 +90,7 @@ def create_user(request, access_token):
 
     })
 
-def merge_stats(request):
+def total_points_stats(request):
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
@@ -108,28 +108,84 @@ def merge_stats(request):
     while start<=today:
         next_month = (start.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
         end = next_month - datetime.timedelta(days=1)
+        month = start.strftime('%m')
+        year = start.strftime('%Y')
+        key = f"{year}-{month}"
 
-        query = f"""
+        query_commits = f"""
+        {{
+          viewer {{
+            contributionsCollection(from: "{start}", to: "{end}") {{
+              totalCommitContributions
+            }}
+          }}
+        }}
+        """
+        response_commits = requests.post("https://api.github.com/graphql", json={"query": query_commits}, headers=headers)
+        data = response_commits.json()
+
+        commits = data.get('data', {}) \
+                    .get('viewer', {}) \
+                   .get('contributionsCollection', {}) \
+                   .get('totalCommitContributions', 0)
+        total_points_commits = commits*10
+
+        query_issues = f"""
+        {{
+          search(query: "author:{username} type:issue created:{start}..{end}", type: ISSUE, first: 1) {{
+            issueCount
+          }}
+        }}
+        """
+        response_issues = requests.post("https://api.github.com/graphql", json={"query": query_issues}, headers=headers)
+        data = response_issues.json()
+        issues = data['data']['search']['issueCount']
+        total_points_issues = issues * 10
+
+        query_open_prs = f"""
+        query {{
+        search(query: "is:pr is:open author:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
+            issueCount
+        }}
+        }}
+        """
+        response_open_prs = requests.post("https://api.github.com/graphql", json={"query": query_open_prs}, headers=headers)
+        data = response_open_prs.json()
+        open_prs = data['data']['search']['issueCount']
+        total_points_open_prs = open_prs *10
+
+        query_appr_prs = f"""
+        {{
+          search(query: "is:pr is:open review:approved author:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
+            issueCount
+          }}
+        }}
+        """
+        response_appr_prs = requests.post("https://api.github.com/graphql", json={"query": query_appr_prs}, headers=headers)
+        data = response_appr_prs.json()
+        appr_prs = data['data']['search']['issueCount']
+        total_points_appr_prs = appr_prs * 10
+
+
+        query_merges= f"""
         {{
           search(query: "is:pr is:merged merged-by:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
             issueCount
           }}
         }}
         """
-        response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
-        data = response.json()
+        response_merges = requests.post("https://api.github.com/graphql", json={"query": query_merges}, headers=headers)
+        data = response_merges.json()
+        merges = data['data']['search']['issueCount']
+        total_merge_points = merges * 10
 
-        month = start.strftime('%m')
-        year = start.strftime('%Y')
 
-        if year not in results_requests:
-            results_requests[year] = {}
-
-        results_requests[year][month] = data['data']['search']['issueCount']
+        total_month = total_points_commits + total_points_issues + total_points_open_prs + total_points_appr_prs + total_merge_points
+        results_requests[key] = total_month
 
         start = next_month
     return JsonResponse({
     'username': username,
-    'merges_y/m': results_requests
+    'points_y/m': results_requests
     })
 
