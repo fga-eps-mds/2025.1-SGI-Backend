@@ -90,7 +90,7 @@ def create_user(request, access_token):
 
     })
 
-def issues_months(request):
+def total_prs_stats(request):
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
@@ -110,23 +110,25 @@ def issues_months(request):
         end = next_month - datetime.timedelta(days=1)
 
         query = f"""
-        {{
-          search(query: "author:{username} type:issue created:{start}..{end}", type: ISSUE, first: 1) {{
+        query {{
+        search(query: "is:pr is:open author:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
             issueCount
-          }}
+        }}
         }}
         """
+        #created:{start}..{end}
         response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
         data = response.json()
 
         month = start.strftime('%m')
         year = start.strftime('%Y')
-
+        if year not in results_requests:
+            results_requests[year] = {}
         results_requests[year][month] = data['data']['search']['issueCount']
 
         start = next_month
     return JsonResponse({
     'username': username,
-    'issues_y/m': results_requests
+    'open_prs_y/m': results_requests
     })
 
