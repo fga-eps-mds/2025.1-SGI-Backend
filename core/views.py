@@ -121,6 +121,9 @@ def issues_months(request):
 
         month = start.strftime('%m')
         year = start.strftime('%Y')
+        
+        if year not in results_requests:
+            results_requests[year] = {}
 
         results_requests[year][month] = data['data']['search']['issueCount']
 
