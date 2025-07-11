@@ -24,7 +24,7 @@ urlpatterns = [
     path('api/auth/github', views.git_auth_code, name='git_auth_code'),
     #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     path('callback', views.git_auth_token, name='callback'),
-    path('api/users/[id]/pull_request',views.total_prs,name='Total PullRequests')
+    path('api/users/<int:id>/pull_request',views.total_prs,name='Total PullRequests')
 
     #path('callback', views.callback, name='callback'),
     #path('auth/', include('social_django.urls', namespace='social')),  links de auth do django 
