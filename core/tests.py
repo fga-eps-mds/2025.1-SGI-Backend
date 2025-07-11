@@ -21,3 +21,22 @@ class TestsGitFIca(APITestCase):
         self.session['username'] = 'testuser'
         self.session['token'] = 'mocked_github_token'
         self.session.save()
+        
+     #teste para chamadas com sucesso a api do github 
+    @patch('core.views.requests.post')
+    def test_total_prs_closed(self, mock_post):
+        
+        #Mockando resposta da api pra poder fazer o teste da views
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            'data': {
+                'search': {
+                    'issueCount': 5
+                }
+            }
+        }
+    
+        #Conferindo se as saidas foram corretas
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request_fechados')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['total_pr'], 5)
