@@ -1,11 +1,13 @@
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from django.test import Client
 from django.urls import reverse
 from django.http import JsonResponse
-#from views import blacklist 
+from django.test import TestCase, Client
+from django.contrib.auth.models import User
 from models import Profile
+from unittest.mock import patch
+#from views import blacklist 
 
 class TestsGitFIca(APITestCase):
     
@@ -19,5 +21,24 @@ class TestsGitFIca(APITestCase):
         self.session['username'] = 'testuser'
         self.session['token'] = 'mocked_github_token'
         self.session.save()
-        
     
+    @patch('core.views.requests.post')
+    def test_total_prs(self, mock_post):
+        
+        #Mockando resposta da api pra poder fazer o teste da views
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            'data': {
+                'search': {
+                    'issueCount': 5
+                }
+            }
+        }
+    
+        #Conferindo se as saidas foram corretas
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['total_pr'], 5)
+
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.pontos_prs_abertos, 50)
