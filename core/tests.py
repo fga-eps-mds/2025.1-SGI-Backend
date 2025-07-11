@@ -22,6 +22,7 @@ class TestsGitFIca(APITestCase):
         self.session['token'] = 'mocked_github_token'
         self.session.save()
     
+    #teste para chamadas com sucesso a api do github 
     @patch('core.views.requests.post')
     def test_total_prs(self, mock_post):
         
@@ -42,3 +43,14 @@ class TestsGitFIca(APITestCase):
 
         profile = Profile.objects.get(user=self.user)
         self.assertEqual(profile.pontos_prs_abertos, 50)
+        
+    #teste para quando a api não consegue passar todos os dados necessarios
+    @patch('core.views.requests.post')
+    def test_total_prs_data_error(self):
+        #Fazer o request com dados faltando 
+        session = self.client.session
+        session.clear()
+        session.save()
+
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request')
+        self.assertEqual(response.status_code, 500)
