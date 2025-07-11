@@ -90,7 +90,7 @@ def create_user(request, access_token):
 
     })
 
-def approved_prs_stats(request):
+def merge_stats(request):
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
@@ -111,7 +111,7 @@ def approved_prs_stats(request):
 
         query = f"""
         {{
-          search(query: "is:pr is:open review:approved author:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
+          search(query: "is:pr is:merged merged-by:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
             issueCount
           }}
         }}
@@ -130,6 +130,6 @@ def approved_prs_stats(request):
         start = next_month
     return JsonResponse({
     'username': username,
-    'approved_prs_y/m': results_requests
+    'merges_y/m': results_requests
     })
 
