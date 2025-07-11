@@ -101,14 +101,14 @@ def totalCommitsMes(request):
     except User.DoesNotExist:
         return JsonResponse({'error': 'Usuário não encontrado'}, status=404)
 
-    date_joined = user.date_joined.isoformat()
+    
 
     
     query = f"""
     query {{
       user(login: "{username}") {{
-        contributionsCollection(from: "{date_joined}") {{
-          commitContributionsByRepository(maxRepositories: 100) {{
+        contributionsCollection {{
+          commitContributionsByRepository(maxRepositories: 1000) {{
             repository {{
               name
             }}
@@ -129,6 +129,8 @@ def totalCommitsMes(request):
     }
 
     response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    #print(response.json())
 
     if response.status_code != 200:
         return JsonResponse({'error': 'Erro na requisição ao GitHub'}, status=500)
