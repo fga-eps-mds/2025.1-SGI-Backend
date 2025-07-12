@@ -85,11 +85,13 @@ def create_user(request, access_token):
     })
 
 def total_merges(request):
+    #Gets user session data
     username = request.session.get('username')
     token = request.session.get('token')
     user = User.objects.get(username=username)
     date = user.date_joined
 
+    #Access the API to get the merge data made by the user
     query = f"""
     query {{
       search(query: "is:pr is:merged merged-by:{username} created:>={date}", type: ISSUE, first: 1) {{

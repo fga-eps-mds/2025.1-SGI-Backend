@@ -21,10 +21,10 @@ from . import views
 urlpatterns = [
     
     path('admin/', admin.site.urls),
-    path('api/auth/github', views.git_auth_code, name='git_auth_code'),
+    path('api/auth/github/', views.git_auth_code, name='git_auth_code'),
     #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     path('callback', views.git_auth_token, name='callback'),
-    path('api/users/[id]/merge',views.total_merges,name='Total PullRequests Fechados')
+    path('api/users/[id]/total_merges',views.total_merges,name='total_merges')
 
     #path('callback', views.callback, name='callback'),
     #path('auth/', include('social_django.urls', namespace='social')),  links de auth do django 
