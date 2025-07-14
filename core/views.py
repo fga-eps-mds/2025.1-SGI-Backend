@@ -4,6 +4,12 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+import calendar
+import datetime
+from collections import defaultdict
+from django.utils.timezone import localtime
+from django.utils import timezone
+
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -83,3 +89,47 @@ def create_user(request, access_token):
         'email': email,
 
     })
+
+def approved_prs_stats(request):
+    username = request.session.get('username')
+    token = request.session.get('token')
+    user = User.objects.get(username=username)
+
+    start = user.date_joined.date().replace(day=1)  
+    today = timezone.now().date().replace(day=1)    
+
+    results_requests = {}
+
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    while start<=today:
+        next_month = (start.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+        end = next_month - datetime.timedelta(days=1)
+
+        query = f"""
+        {{
+          search(query: "is:pr is:open review:approved author:{username} created:{start}..{end}", type: ISSUE, first: 1) {{
+            issueCount
+          }}
+        }}
+        """
+        response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+        data = response.json()
+
+        month = start.strftime('%m')
+        year = start.strftime('%Y')
+
+        if year not in results_requests:
+            results_requests[year] = {}
+
+        results_requests[year][month] = data['data']['search']['issueCount']
+
+        start = next_month
+    return JsonResponse({
+    'username': username,
+    'approved_prs_y/m': results_requests
+    })
+
