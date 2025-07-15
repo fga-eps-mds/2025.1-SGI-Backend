@@ -23,16 +23,6 @@ def git_auth_code(request):
     # Redireciona para a página de login/autorização do GitHub
     return redirect(github_auth_url)
 
-# Recebe o "code" do GitHub e troca por um access token
-def git_auth_token(request):
-# seu_app/views.py
-
-import requests
-import os
-from django.http import JsonResponse
-# Remova 'from django.conf import settings' se não estiver usando em outro lugar
-# e use os.environ.get() diretamente para consistência.
-
 def git_auth_token(request):
     """
     Recebe o 'code' do GitHub, troca por um 'access_token', e lida com erros de forma detalhada.
