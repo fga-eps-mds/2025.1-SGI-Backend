@@ -9,9 +9,10 @@ class Profile(models.Model):
     avatar = models.URLField(blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
     pontuacao_issues = models.IntegerField(default=0)
+    pontuacao_commits = models.IntegerField(default=0)
 
     def __str__(self):
-        return self.user.username
+        return f"Profile de {self.user.username} - Pontuação: {self.pontuacao_commits}"
 
 # Creates/updates the profile automatically by saving the user
 @receiver(post_save, sender=User)

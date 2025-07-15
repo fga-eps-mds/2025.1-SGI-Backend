@@ -15,6 +15,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.utils import timezone
+from core.models import Profile 
 
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
@@ -120,6 +121,9 @@ def total_commits(request):
         return JsonResponse({'error': 'User not found'}, status=404)
     
     date = user.date_joined
+   
+   # Creates the profile associated with the user to store the score
+    profile, created = Profile.objects.get_or_create(user=user)
 
     headers = {'Authorization': f'bearer {token}',
                'Content-Type': 'application/json'}
@@ -151,9 +155,15 @@ def total_commits(request):
                    .get('contributionsCollection', {}) \
                    .get('totalCommitContributions', 0)
 
+# calculates the score and saves in the profile
+    profile.pontuacao_commits = total *10
+    profile.save()
+
     return JsonResponse({
         'usuario': username,
         'total_commits': total, 
+        'pontuacao_commits':profile.pontuacao_commits
+
     })
         
 
