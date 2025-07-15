@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from core.models import Profile
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.exceptions import TokenError
@@ -239,4 +240,70 @@ def check_auth(request):
         })
     except (TokenError, User.DoesNotExist):
         return JsonResponse({'authenticated': False}, status=200)
+
+
+def total_issues(request):
+    #Retrieves the GitHub username and authentication token stored
+    username = request.session.get('username')
+    token = request.session.get('token')
+
+    if not username or not token:
+        return JsonResponse({'error': 'invalid'}, status=400)
+
+    #Tries to find the user in the django database
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    #Gets the date the user was registered in the system used to filter issues until this moment onwards.
+    date = user.date_joined
+
+    #Creates a GraphQL query for GitHub and search the total number of issues created by the user since the date they logged in
+    query = f"""
+    {{
+    search(query: "author:{username} type:issue created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+    }}
+    }}
+    """
+
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    #Sends the request to the GitHub API and stores the total number of issues created by the user
+    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    data = response.json()
+    total_issues = data['data']['search']['issueCount']
+
+    #This time to count only the issues closed (state:closed) by the user since their entry.   
+    query2 = f"""
+    {{
+    search(query: "author:{username} type:issue state:closed created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+    }}
+    }}
+    """
+
+    response2 = requests.post("https://api.github.com/graphql", json={"query": query2}, headers=headers)
+
+    data2 = response2.json()
+    total_issues_closed = data2['data']['search']['issueCount']
+    
+    #Calculates the score based on closed issues
+    profile.score_issues = total_issues_closed * 10
+    profile.save()
+
+   
+    return JsonResponse({
+        'username': username,
+        'total_issues': total_issues,
+        'total_issues_closed': total_issues_closed,
+        'pontuação_issues': profile.score_issues,
+    })
 

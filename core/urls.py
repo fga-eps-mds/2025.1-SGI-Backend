@@ -22,11 +22,13 @@ from .views import public_github_profile, user_profile, check_auth
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/github/', views.git_auth_code, name='git_auth_code'),
+    #path('api/auth/token', views.git_auth_token, name='git_code_token'),
     path('callback/', views.git_auth_token, name='callback'),
     path('api/auth/logout/', views.logout, name='logout'),
     path('api/auth/check/', check_auth, name='check_auth'),
     path('api/users/me/', user_profile, name='user_profile'),
     path('DELETE/api/users/me/', views.delete_user,name='delete_user'),
     path('api/users/<str:username>/', public_github_profile),
+    path('api/users/[id]/total_issues',views.total_issues,name = 'total_issues'),
 
 ]
