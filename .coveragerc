@@ -1,0 +1,29 @@
+[run]
+source = .
+omit = 
+    */venv/*
+    */env/*
+    manage.py
+    */settings/*
+    */migrations/*
+    */__pycache__/*
+    */static/*
+    */media/*
+    */node_modules/*
+    */.git/*
+    */tests/*
+    */test_*.py
+    */.pytest_cache/*
+    */htmlcov/*
+    .coverage
+    coverage.xml
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+
+[html]
+directory = htmlcov
