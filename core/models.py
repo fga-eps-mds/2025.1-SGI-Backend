@@ -10,6 +10,7 @@ class Profile(models.Model):
     bio = models.TextField(blank=True, null=True)
     pontuacao_issues = models.IntegerField(default=0)
     pontuacao_commits = models.IntegerField(default=0)
+    pontos_prs_abertos = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Profile de {self.user.username} - Pontuação: {self.pontuacao_commits}"

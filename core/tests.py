@@ -158,6 +158,50 @@ class TestsGitFIca(TestCase):
         self.assertEqual(data['name'], 'userteste')
         self.assertEqual(data['avatar_url'], './avatar.png')
         self.assertEqual(data['bio'], 'teste')
+    
+    #inciializacao e criação de sessao do usuario pra fazerr os testes
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser',password='testpass')
+        self.user.save()
+
+        self.session = self.client.session
+        self.session['username'] = 'testuser'
+        self.session['token'] = 'mocked_github_token'
+        self.session.save()
+    
+    #teste para chamadas com sucesso a api do github 
+    @patch('core.views.requests.post')
+    def test_total_prs(self, mock_post):
+        
+        #Mockando resposta da api pra poder fazer o teste da views
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json.return_value = {
+            'data': {
+                'search': {
+                    'issueCount': 5
+                }
+            }
+        }
+    
+        #Conferindo se as saidas foram corretas
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['total_pr'], 5)
+
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.pontos_prs_abertos, 50)
+        
+    #teste para quando a api não consegue passar todos os dados necessarios
+    @patch('core.views.requests.post')
+    def test_total_prs_data_error(self):
+        #Fazer o request com dados faltando 
+        session = self.client.session
+        session.clear()
+        session.save()
+
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request')
+        self.assertEqual(response.status_code, 500)
 
 class TotalIssuesViewTest(TestCase):
     def setUp(self):

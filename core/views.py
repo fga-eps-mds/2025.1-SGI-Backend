@@ -198,6 +198,8 @@ def total_prs(request):
         return JsonResponse({'error': 'Error GraphQL', 'status_code': response.status_code}, status=500)
 
     data = response.json()
+    totalpr = data["data"]["search"]["issueCount"]
+    profile.pontos_prs_abertos = totalpr*10
     total_prs = data.get('data', {}).get('search', {}).get('issueCount', 0)
 
     # Calculates the score based on pull requests
