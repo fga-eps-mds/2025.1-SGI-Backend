@@ -6,13 +6,21 @@ from .models import Profile
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import JsonResponse
-from views import blacklist 
+from .views import blacklist
+
+# Constantes para testes
+TEST_PASSWORD = 'test_password_123!'
+TEST_USERNAME = 'test_user'
+TEST_EMAIL = 'test@example.com' 
 
 class TestsGitFIca(TestCase):
     
     def setUp(self):
         self.cliente = Client()
-        self.usuario = User.objects.create_user(username='usuario_teste', password='senha123')
+        self.usuario = User.objects.create_user(
+            username='usuario_teste', 
+            password=TEST_PASSWORD
+        )
         self.usuario.date_joined = '2023-01-01T00:00:00Z'  
         self.usuario.save()
 
@@ -67,7 +75,10 @@ class TestsGitFIca(TestCase):
 class TotalIssuesViewTest(TestCase):
     def setUp(self):
         #Create a test user
-        self.user = User.objects.create_user(username='user_test', password='test123')
+        self.user = User.objects.create_user(
+            username='user_test', 
+            password=TEST_PASSWORD
+        )
         self.user.save()
 
         #Creates an associated profile if the view's get_or_create needs it
@@ -113,7 +124,10 @@ class MockResponse:
 class ProfileModelTest(TestCase):
     def test_create_profile_with_default_score(self):
         #Create a test user
-        user = User.objects.create_user(username='user_test', password='12345')
+        user = User.objects.create_user(
+            username='user_test', 
+            password=TEST_PASSWORD
+        )
 
         #Create a related Profile
         profile = Profile.objects.create(user=user)
@@ -125,7 +139,10 @@ class ProfileModelTest(TestCase):
         self.assertEqual(profile.pontuacao_issues, 0)
 
     def test_update_pontuacao_issues(self):
-        user = User.objects.create_user(username='user_test2', password='abc123')
+        user = User.objects.create_user(
+            username='user_test2', 
+            password=TEST_PASSWORD
+        )
         profile = Profile.objects.create(user=user)
 
         #Update the score
@@ -147,9 +164,9 @@ class TestsGitFIca(APITestCase):
         #criação do user pra testar o view profile 
         self.user = User.objects.create_user(
             username='teste',
-            password='teste',
+            password=TEST_PASSWORD,
             first_name='Test',
-            email='test@teste.com'
+            email=TEST_EMAIL
         )
         # tem que criar o profile emulado ja que essas info não estã ocontidas no user do django
         self.profile = Profile.objects.create(
@@ -174,12 +191,16 @@ class TestsGitFIca(APITestCase):
         data = response.json()
         self.assertEqual(data['nome'], 'Test')
         self.assertEqual(data['username'], 'teste')
-        self.assertEqual(data['email'], 'test@teste.com')
+        self.assertEqual(data['email'], TEST_EMAIL)
         self.assertEqual(data['avatar'], '')
         self.assertEqual(data['bio'], 'teste')
 
 
-        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
+        self.user = User.objects.create_user(
+            username='usuarioteste123', 
+            password=TEST_PASSWORD,
+            email=TEST_EMAIL
+        )
         self.refresh = RefreshToken.for_user(self.user)
         self.client = APIClient()
         
@@ -214,7 +235,10 @@ class TestsGitFIca(APITestCase):
 
     
 
-        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123')
+        self.user = User.objects.create_user(
+            username='usuarioteste123', 
+            password=TEST_PASSWORD
+        )
         self.client = APIClient()
     
     #teste pra quando o blacklist recebe um gwt invalido
