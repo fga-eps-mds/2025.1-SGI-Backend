@@ -1,3 +1,61 @@
+# Ignorar ambiente virtual
+venv/
+ENV/
+env/
+.venv/
+
+# Bytecode Python
+__pycache__/
+*.py[cod]
+
+# Arquivos de configuração do editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos de logs
+*.log
+
+# Arquivos temporários
+*.swp
+*.tmp
+
+# Arquivos de teste e cobertura
+.coverage
+htmlcov/
+.tox/
+
+# Arquivos compilados e binários
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Outros arquivos específicos do Python
+*.egg-info/
+dist/
+build/
+
+# Pipenv
+Pipfile.lock
+
+# Pyenv
+.python-version
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings
+.vscode/
+
+# MyPy cache
+.mypy_cache/
+
+# Pytest cache
+.pytest_cache/
+
+
 ### Django ###
 *.log
 *.pot
