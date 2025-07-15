@@ -236,3 +236,6 @@ def check_auth(request):
         })
     except (TokenError, User.DoesNotExist):
         return JsonResponse({'authenticated': False}, status=200)
+
+def health_check(request):
+    return JsonResponse({"status": "ok", "message": "SGI Backend is running!"})
