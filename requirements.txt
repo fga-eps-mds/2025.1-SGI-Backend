@@ -8,3 +8,6 @@ djangorestframework-simplejwt
 social-auth-app-django
 python-decouple==3.8
 django-cors-headers
+coverage
+pytest
+pytest-django
