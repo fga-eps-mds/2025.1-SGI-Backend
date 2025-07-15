@@ -1,6 +1,12 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from unittest.mock import patch
+from django.urls import reverse
+from .models import Profile  
+from rest_framework.test import APITestCase, APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.http import JsonResponse
+from views import blacklist 
 
 class TestsGitFIca(TestCase):
     
@@ -57,3 +63,199 @@ class TestsGitFIca(TestCase):
         self.assertEqual(resposta.status_code, 500)
         self.assertIn('error', resposta.json())
         self.assertEqual(resposta.json()['error'], 'Error GraphQL')
+
+class TotalIssuesViewTest(TestCase):
+    def setUp(self):
+        #Create a test user
+        self.user = User.objects.create_user(username='user_test', password='test123')
+        self.user.save()
+
+        #Creates an associated profile if the view's get_or_create needs it
+        Profile.objects.create(user=self.user)
+
+        #Define an example token
+        self.token = 'fake-token'
+
+        #Instantiate a Django client to simulate requests
+        self.client = Client()
+
+        #Save username and token in session
+        session = self.client.session
+        session['username'] = self.user.username
+        session['token'] = self.token
+        session.save()
+
+    @patch('requests.post')
+    def test_total_issues_success(self, mock_post):
+        #Mock GitHub API response for first open issue query
+        mock_post.side_effect = [
+            MockResponse({'data': {'search': {'issueCount': 5}}}, 200),  #Total issues
+            MockResponse({'data': {'search': {'issueCount': 3}}}, 200),  #Closed issues 
+        ]
+
+        response = self.client.get(reverse('total_issues'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['username'], self.user.username)
+        self.assertEqual(response.json()['total_issues'], 5)
+        self.assertEqual(response.json()['total_issues_closed'], 3)
+        self.assertEqual(response.json()['pontuação_issues'], 30)
+
+
+#Helper class to simulate GitHub response
+class MockResponse:
+    def __init__(self, json_data, status_code):
+        self._json = json_data
+        self.status_code = status_code
+    def json(self):
+        return self._json
+    
+class ProfileModelTest(TestCase):
+    def test_create_profile_with_default_score(self):
+        #Create a test user
+        user = User.objects.create_user(username='user_test', password='12345')
+
+        #Create a related Profile
+        profile = Profile.objects.create(user=user)
+
+        #Tests if the Profile was created correctly
+        self.assertEqual(profile.user.username, 'user_test')
+
+        #Checks if the score starts with 0
+        self.assertEqual(profile.pontuacao_issues, 0)
+
+    def test_update_pontuacao_issues(self):
+        user = User.objects.create_user(username='user_test2', password='abc123')
+        profile = Profile.objects.create(user=user)
+
+        #Update the score
+        profile.pontuacao_issues = 50
+        profile.save()
+
+        #Recover again and test
+        updated = Profile.objects.get(user=user)
+        self.assertEqual(updated.pontuacao_issues, 50)
+
+
+class TestsGitFIca(APITestCase):
+    
+    #inicialização e configuração base pros testes do django test
+    def setUp(self):
+
+        
+        self.client = APIClient()
+        #criação do user pra testar o view profile 
+        self.user = User.objects.create_user(
+            username='teste',
+            password='teste',
+            first_name='Test',
+            email='test@teste.com'
+        )
+        # tem que criar o profile emulado ja que essas info não estã ocontidas no user do django
+        self.profile = Profile.objects.create(
+            user=self.user,
+            avatar='',
+            bio='teste'
+        )
+        self.refresh = RefreshToken.for_user(self.user)
+    
+    #teste pra solicitaçao sem ter o usuario autenticado no programa 
+    def test_user_profile_no_auutentication(self):
+        response = self.client.get('/api/users/me/')  
+        self.assertEqual(response.status_code, 401)
+    
+    #teste para usuario autenticado 
+    def test_get_user_profile_autenticated(self):
+        # simulando autenticação do usuario
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        
+        response = self.client.get('/api/users/me/') 
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['nome'], 'Test')
+        self.assertEqual(data['username'], 'teste')
+        self.assertEqual(data['email'], 'test@teste.com')
+        self.assertEqual(data['avatar'], '')
+        self.assertEqual(data['bio'], 'teste')
+
+
+        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
+        self.refresh = RefreshToken.for_user(self.user)
+        self.client = APIClient()
+        
+    #teste para metodos diferentes do delete
+    def test_deleteuser_method_error(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        response = self.client.get('/DELETE/api/users/me/') 
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.json()['error'], 'Method not allowed')
+        
+    #teste para chamadas sem nenhum token
+    def test_deleteuser_no_token(self):
+        response = self.client.delete('/DELETE/api/users/me/')
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['error'], 'Authorization token required')
+    
+    #Teste pra chamadas com token mas token inválido
+    def test_deleteuser_token_error(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer testeinvalidd')
+        response = self.client.delete('/DELETE/api/users/me/')
+        self.assertEqual(response.status_code, 401)
+        self.assertIn('Invalid', response.json()['error'])
+        
+    #teste para chamadas com token válido 
+    def test_delete_user_with_valid_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        response = self.client.delete('/DELETE/api/users/me/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('message', response.json())
+        self.assertEqual(User.objects.filter(username='testuser').exists(), False)
+
+    
+
+        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123')
+        self.client = APIClient()
+    
+    #teste pra quando o blacklist recebe um gwt invalido
+    def test_blacklist_false_token(self):
+        invalid_token = 'testetesteteste'
+        result = blacklist(None, invalid_token)
+        self.assertFalse(result)
+        
+    #teste pra jwt valido 
+    def test_blacklist_token_correct(self):
+        testJwt = RefreshToken.for_user(self.user) #Essa função vai emular um jwt válido pra testar se o blacklist ta funcionando certinho 
+        result = blacklist(None, str(testJwt))
+        self.assertTrue(result)
+    
+    #Teste para qualquer tipo de metodo que não seja o post que foi definido la no logout     
+    def test_logout_methoderror(self):
+        response = self.client.get('/api/auth/logout')
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.json()['success'], False)
+        
+    #teste para quando da o erro token not provided la no logout 
+    def test_logout_token_error(self):
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['success'], False)
+        
+    #teste pra quando é enviado um gwt invalido pro logout 
+    def test_logout_token_invalid(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer tokeninvalidotesteteste')
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['success'], False)
+        
+    #teste pra token valido no logout 
+    def test_logout_token_correct(self):
+        testJwt = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(testJwt)}')
+
+        response = self.client.post('/api/auth/logout/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['success'], True)
+        self.assertEqual(response.json()['message'], 'Logout successful')
+
+
