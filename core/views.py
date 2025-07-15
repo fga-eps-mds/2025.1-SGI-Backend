@@ -86,7 +86,7 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
         # Retornar os tokens como JSON ou redirecionar para o frontend
-    frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
+    frontend_url = f"{settings.CORS_ALLOWED_ORIGINS}/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
     return redirect(frontend_url)
 
 def public_github_profile(request, username):
