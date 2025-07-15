@@ -204,15 +204,10 @@ def total_prs(request):
     profile.pontuacao_prs = total_prs * 15
     profile.save()
 
-    profile.pontos_prs_approved = totalprclosed*10
-    profile.save()
-
     return JsonResponse({
         'username': username,
         'total_prs': total_prs,
-        'pontuacao_prs': profile.pontuacao_prs,
-        'total_pr_fechados':totalprclosed,
-        'total_prs_closed_pontos': profile.pontos_prs_approved,
+        'pontuacao_prs': profile.pontuacao_prs
     })
 
 @require_http_methods(["GET"])
@@ -486,4 +481,34 @@ def total_issues(request):
         'total_issues': total_issues,
         'total_issues_closed': total_issues_closed,
         'pontuacao_issues': profile.pontuacao_issues,
+    })
+@require_http_methods(["GET"])
+def total_merges(request):
+    #Gets user session data
+    username = request.session.get('username')
+    token = request.session.get('token')
+    user = User.objects.get(username=username)
+    date = user.date_joined
+
+    #Access the API to get the merge data made by the user
+    query = f"""
+    query {{
+      search(query: "is:pr is:merged merged-by:{username} created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+      }}
+    }}
+    """
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+    
+
+    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    data = response.json()
+    total_merge = data["data"]["search"]["issueCount"]
+
+    return JsonResponse({
+        'total_merges':total_merge
     })

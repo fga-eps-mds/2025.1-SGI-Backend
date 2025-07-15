@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/users/id/total_commits',views.total_commits,name='total_commits'),
     path('api/users/<int:id>/pull_request',views.total_prs,name='Total PullRequests'),
     path('api/users/[id]/pull_request_fechados',views.total_prs_closed,name='Total PullRequests Fechados'),
+    path('api/users/[id]/total_merges',views.total_merges,name='total_merges'),
     # path('api/pontuar-commits/', views.pontuar_commits, name='pontuar_commits'),
 
 ]
