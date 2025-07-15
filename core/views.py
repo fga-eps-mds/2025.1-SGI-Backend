@@ -17,8 +17,8 @@ from decouple import config
 def git_auth_code(request):
     github_auth_url = (
         f"https://github.com/login/oauth/authorize"
-        f"?client_id={settings.GITHUB_CLIENT_ID}"
-        f"&redirect_uri={settings.GITHUB_REDIRECT_URI}"
+        f"?client_id={config('GITHUB_CLIENT_ID')}"
+        f"&redirect_uri={config('GITHUB_REDIRECT_URI')}"
         f"&scope=user:email"
     )
     # Redireciona para a página de login/autorização do GitHub
