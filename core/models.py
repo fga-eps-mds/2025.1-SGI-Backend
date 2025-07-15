@@ -14,6 +14,7 @@ class Profile(models.Model):
     pontuacao_prs_fechados = models.IntegerField(default=0)
     pontos_prs_abertos = models.IntegerField(default=0)
     pontos_prs_approved = models.IntegerField(default=0)
+    pontos_merge = models.IntegerField(default=0)
 
     def __str__(self):
         return f"Profile de {self.user.username} - Total: {self.pontuacao_total}"

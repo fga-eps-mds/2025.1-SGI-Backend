@@ -75,6 +75,8 @@ def create_user(request, access_token):
         headers={'Authorization': f'token {access_token}'}
     )
     emails = email_response.json()
+    request.session['username'] = username
+    request.session['token'] = access_token 
 
     # Tenta encontrar o e-mail primário e verificado
     username = user_data.get('login')
@@ -489,8 +491,7 @@ def total_merges(request):
     token = request.session.get('token')
     user = User.objects.get(username=username)
     date = user.date_joined
-
-    #Access the API to get the merge data made by the user
+    profile, created = Profile.objects.get_or_create(user=user)
     query = f"""
     query {{
       search(query: "is:pr is:merged merged-by:{username} created:>={date}", type: ISSUE, first: 1) {{
@@ -509,6 +510,10 @@ def total_merges(request):
     data = response.json()
     total_merge = data["data"]["search"]["issueCount"]
 
+    profile.pontos_merge = total_merge * 10
+    profile.save()
+
     return JsonResponse({
-        'total_merges':total_merge
+        'total_merges':total_merge,
+        'pontos_merge': profile.pontos_merge,
     })
