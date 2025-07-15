@@ -100,12 +100,6 @@ def create_user(request, access_token):
     frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
     return redirect(frontend_url)
 
-    # Retorna os dados do usuário e os tokens (se desejado, os tokens também podem ser incluídos)
-    return JsonResponse({
-        'username': username,
-        'email': email,
-    })
-
 
 import requests
 from django.http import JsonResponse
