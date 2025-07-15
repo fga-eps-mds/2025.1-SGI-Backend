@@ -4,9 +4,15 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
+from rest_framework_simplejwt.exceptions import TokenError
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -39,8 +45,10 @@ def git_auth_token(request):
     
     token_data = token_response.json()
     access_token = token_data.get('access_token')  # Pega o access token da resposta
+
     if not access_token:
         return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
+    request.session['jwt_token'] = access_token
 
     # Chama a função que cria o usuário com base no access token
     return create_user(request, access_token)
@@ -79,30 +87,156 @@ def create_user(request, access_token):
     refresh = RefreshToken.for_user(user)
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
+        # Retornar os tokens como JSON ou redirecionar para o frontend
+    frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
+    return redirect(frontend_url)
 
-        # Updates or creates the user profile
-    profile = user.profile
-    profile.avatar = user_data.get('avatar_url', '')
-    profile.bio = user_data.get('bio', '')
-    profile.save()
+def public_github_profile(request, username):
+    
+    #Access public data from github
+    github_api_url = f"https://api.github.com/users/{username}"
+    response = requests.get(github_api_url)
 
-    # Returns user data and tokens (if you want, you can include tokens as well)
-    return JsonResponse({
-        'username': username,
-        'email': email,
+    #If the user not exist
+    if response.status_code == 404:
+        return JsonResponse({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    })
+    #If they cant acess github
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error accessing GitHub'}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+    data = response.json()
+
+    profile_data = {
+        'name': data.get('name'),
+        'avatar_url': data.get('avatar_url'),
+        'bio': data.get('bio'),
+    }
+
+    return JsonResponse(profile_data)
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
+def delete_user(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    # Pegar o token JWT do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Authorization token required'}, status=401)
+    
+    jwt_token = auth_header.split(' ')[1]
+    
+    try:
+        # Decodificar o JWT para pegar informações do usuário
+        from rest_framework_simplejwt.tokens import AccessToken
+        token = AccessToken(jwt_token)
+        user_id = token['user_id']
+        
+        # Buscar o usuário pelo ID
+        user = User.objects.get(id=user_id)
+        username = user.username
+        
+        # Deletar o usuário
+        user.delete()
+        return JsonResponse({'message': f'User {username} deleted successfully.'})
+        
+    except TokenError:
+        return JsonResponse({'error': 'Invalid or expired token'}, status=401)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete user: {str(e)}'}, status=500)
+
+def blacklist(request,acess_token):
+    try:
+        if not acess_token:
+            return False
+        token = RefreshToken(acess_token)
+        token.blacklist()
+        return True
+    except TokenError:
+        return False
+    
+@csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
+def logout(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+    
+    # Pegar o token do header Authorization
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'success': False, 'message': 'Token not provided'}, status=400)
+    
+    token = auth_header.split(' ')[1]
+    
+    try:
+        # Usando o RefreshToken para invalidar o token
+        refresh_token = RefreshToken(token)
+        refresh_token.blacklist()
+        return JsonResponse({'success': True, 'message': 'Logout successful'})
+    except TokenError as e:
+        return JsonResponse({'success': False, 'message': f'Invalid token: {str(e)}'}, status=400)
 
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
-def get_user_profile(request):
+def user_profile(request):
+    """Endpoint para obter informações do perfil do usuário autenticado"""
     user = request.user
-    profile = user.profile 
+    
+    # Buscar dados atuais do GitHub para o usuário
+    try:
+        github_api_url = f"https://api.github.com/users/{user.username}"
+        response = requests.get(github_api_url)
+        
+        if response.status_code == 200:
+            github_data = response.json()
+            profile_data = {
+                'username': user.username,
+                'email': user.email,
+                'name': github_data.get('name') or user.username,
+                'avatar_url': github_data.get('avatar_url'),
+                'bio': github_data.get('bio'),
+                'public_repos': github_data.get('public_repos', 0),
+                'followers': github_data.get('followers', 0),
+                'following': github_data.get('following', 0),
+            }
+        else:
+            # Fallback para dados básicos se não conseguir acessar GitHub
+            profile_data = {
+                'username': user.username,
+                'email': user.email,
+                'name': user.username,
+                'avatar_url': None,
+                'bio': None,
+                'public_repos': 0,
+                'followers': 0,
+                'following': 0,
+            }
+        
+        return JsonResponse(profile_data)
+    except Exception as e:
+        return JsonResponse({'error': f'Error fetching profile: {str(e)}'}, status=500)
 
-    return Response({
-        "nome": user.first_name or "",
-        "username": user.username,
-        "email": user.email,
-        "avatar": profile.avatar or "",  
-        "bio": profile.bio or "",        
-    })
+@api_view(['GET'])
+def check_auth(request):
+    """Endpoint para verificar se o usuário está autenticado"""
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'authenticated': False}, status=200)
+    
+    jwt_token = auth_header.split(' ')[1]
+    
+    try:
+        token = AccessToken(jwt_token)
+        user_id = token['user_id']
+        user = User.objects.get(id=user_id)
+        return JsonResponse({
+            'authenticated': True,
+            'username': user.username,
+            'email': user.email
+        })
+    except (TokenError, User.DoesNotExist):
+        return JsonResponse({'authenticated': False}, status=200)
+
