@@ -17,10 +17,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include 
 from . import views
-from .views import public_github_profile, user_profile, check_auth
+from .views import public_github_profile, user_profile, check_auth, health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', health_check),
     path('api/auth/github/', views.git_auth_code, name='git_auth_code'),
     path('callback/', views.git_auth_token, name='callback'),
     path('api/auth/logout/', views.logout, name='logout'),
