@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from decouple import config
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -38,12 +39,15 @@ def git_auth_token(request):
 
     print(f"--- [Callback] Código recebido: {code[:10]}...")
 
-    # 2. Preparar e enviar a requisição para o GitHub
+    client_id = config('GITHUB_CLIENT_ID')
+    client_secret = config('GITHUB_CLIENT_SECRET')
+    redirect_uri = config('GITHUB_REDIRECT_URI')
+
     payload = {
-        'client_id': os.environ.get('GITHUB_CLIENT_ID'),
-        'client_secret': os.environ.get('GITHUB_CLIENT_SECRET'),
+        'client_id': client_id,
+        'client_secret': client_secret,
         'code': code,
-        'redirect_uri': os.environ.get('GITHUB_REDIRECT_URI'),
+        'redirect_uri': redirect_uri,
     }
     headers = {'Accept': 'application/json'}
 
