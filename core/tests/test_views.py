@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+from core.views import total_prs
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from unittest.mock import patch

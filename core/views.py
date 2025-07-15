@@ -14,8 +14,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.utils import timezone
-from core.models import Profile 
+from django.utils import timezone 
 
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
@@ -101,11 +100,6 @@ def create_user(request, access_token):
     frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
     return redirect(frontend_url)
 
-
-import requests
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-
 @require_http_methods(["GET"])
 def total_commits(request):
     username = request.session.get('username')
@@ -164,6 +158,56 @@ def total_commits(request):
         'total_commits': total, 
         'pontuacao_commits':profile.pontuacao_commits
 
+    })
+
+@require_http_methods(["GET"])
+def total_prs(request):
+    username = request.session.get('username')
+    token = request.session.get('token')
+    
+    # Validação dos dados da sessão
+    if not username or not token:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    
+    date = user.date_joined
+
+    # Creates the profile associated with the user to store the score
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    query = f"""
+    query {{
+      search(query: "is:pr author:{username} created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+      }}
+    }}
+    """
+
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error GraphQL', 'status_code': response.status_code}, status=500)
+
+    data = response.json()
+    total_prs = data.get('data', {}).get('search', {}).get('issueCount', 0)
+
+    # Calculates the score based on pull requests
+    profile.pontuacao_prs = total_prs * 15
+    profile.save()
+
+    return JsonResponse({
+        'username': username,
+        'total_prs': total_prs,
+        'pontuacao_prs': profile.pontuacao_prs
     })
         
 
@@ -355,8 +399,11 @@ def total_issues(request):
     #Sends the request to the GitHub API and stores the total number of issues created by the user
     response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
 
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error GraphQL', 'status_code': response.status_code}, status=500)
+
     data = response.json()
-    total_issues = data['data']['search']['issueCount']
+    total_issues = data.get('data', {}).get('search', {}).get('issueCount', 0)
 
     #This time to count only the issues closed (state:closed) by the user since their entry.   
     query2 = f"""
@@ -369,18 +416,19 @@ def total_issues(request):
 
     response2 = requests.post("https://api.github.com/graphql", json={"query": query2}, headers=headers)
 
+    if response2.status_code != 200:
+        return JsonResponse({'error': 'Error GraphQL on second query', 'status_code': response2.status_code}, status=500)
+
     data2 = response2.json()
-    total_issues_closed = data2['data']['search']['issueCount']
+    total_issues_closed = data2.get('data', {}).get('search', {}).get('issueCount', 0)
     
     #Calculates the score based on closed issues
-    profile.score_issues = total_issues_closed * 10
+    profile.pontuacao_issues = total_issues_closed * 10
     profile.save()
 
-   
     return JsonResponse({
         'username': username,
         'total_issues': total_issues,
         'total_issues_closed': total_issues_closed,
-        'pontuação_issues': profile.score_issues,
+        'pontuacao_issues': profile.pontuacao_issues,
     })
-
