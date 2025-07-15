@@ -137,7 +137,7 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
         # Retornar os tokens como JSON ou redirecionar para o frontend
-    first_origin_frontend = settings.CORS_ALLOWED_ORIGINS[0]
+    first_origin_frontend = config('CORS_ALLOWED_ORIGINS').split(',')[0]
     frontend_url = f"{first_origin_frontend}/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
     return redirect(frontend_url)
 
