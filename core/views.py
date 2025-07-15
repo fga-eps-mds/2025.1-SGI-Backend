@@ -26,82 +26,32 @@ def git_auth_code(request):
 
 # Recebe o "code" do GitHub e troca por um access token
 def git_auth_token(request):
-    """
-    Recebe o 'code' do GitHub, troca por um 'access_token', e lida com erros de forma detalhada.
-    """
-    print("--- [Callback] Iniciando processo de troca de token.") # Log de início
-
-    # 1. Obter o 'code' da requisição
-    code = request.GET.get('code')
+    code = request.GET.get('code')  # Pega o code que o GitHub enviou de volta
     if not code:
-        print("--- [Callback] ERRO: 'code' não encontrado na requisição.")
         return JsonResponse({'error': 'No code provided by GitHub'}, status=400)
 
-    print(f"--- [Callback] Código recebido: {code[:10]}...")
+    # Envia uma requisição para o GitHub para trocar o code por um access token
+    token_response = requests.post(
+        "https://github.com/login/oauth/access_token",
+        data={
+            'client_id': config('GITHUB_CLIENT_ID'),
+            'client_secret': config('GITHUB_CLIENT_SECRET'),
+            'code': code,
+            'redirect_uri': config('GITHUB_REDIRECT_URI'),
+        },
+        headers={'Accept': 'application/json'}
+    )
+    
+    token_data = token_response.json()
+    access_token = token_data.get('access_token')  # Pega o access token da resposta
 
-    client_id = config('GITHUB_CLIENT_ID')
-    client_secret = config('GITHUB_CLIENT_SECRET')
-    redirect_uri = config('GITHUB_REDIRECT_URI')
+    if not access_token:
+        return JsonResponse({'error': 'Failed to obtain access token from GitHub'}, status=400)
+    request.session['jwt_token'] = access_token
 
-    payload = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'code': code,
-        'redirect_uri': redirect_uri,
-    }
-    headers = {'Accept': 'application/json'}
+    # Chama a função que cria o usuário com base no access token
+    return create_user(request, access_token)
 
-    print(f"--- [Callback] Enviando requisição para GitHub com Client ID: {payload['client_id']}")
-
-    try:
-        # Faz a requisição POST
-        response = requests.post(
-            "https://github.com/login/oauth/access_token",
-            headers=headers,
-            data=payload
-        )
-        
-        # Lança um erro se a resposta do GitHub for um erro HTTP (ex: 404, 500)
-        response.raise_for_status()
-        
-        response_data = response.json()
-        print(f"--- [Callback] Resposta JSON recebida do GitHub: {response_data}")
-
-        # 3. Analisar a resposta do GitHub
-        
-        # PRIMEIRO, verificar se o GitHub retornou um erro específico
-        if 'error' in response_data:
-            error_details = response_data.get('error_description', 'No description from GitHub.')
-            print(f"--- [Callback] ERRO do GitHub: {response_data['error']} - {error_details}")
-            return JsonResponse({
-                'error': 'GitHub returned an error.',
-                'error_details': response_data 
-            }, status=400)
-
-        # SEGUNDO, verificar se o access_token existe
-        access_token = response_data.get('access_token')
-        if not access_token:
-            print("--- [Callback] ERRO: Resposta do GitHub OK, mas sem access_token.")
-            return JsonResponse({'error': 'Access token not found in GitHub response'}, status=400)
-
-        # SUCESSO!
-        print("--- [Callback] SUCESSO: Access token obtido.")
-        request.session['jwt_token'] = access_token
-        
-        # Chama a próxima função para criar/logar o usuário
-        return create_user(request, access_token)
-
-    except requests.exceptions.RequestException as e:
-        # Captura erros de rede ou status HTTP de erro (4xx, 5xx)
-        print(f"--- [Callback] ERRO CRÍTICO de requisição: {e}")
-        error_body = e.response.text if e.response else "No response body"
-        print(f"--- [Callback] Corpo do erro do GitHub: {error_body}")
-        return JsonResponse({'error': 'Failed to communicate with GitHub', 'details': error_body}, status=500)
-
-    except ValueError:
-        # Captura erro se a resposta não for um JSON válido
-        print("--- [Callback] ERRO: Falha ao decodificar JSON da resposta do GitHub.")
-        return JsonResponse({'error': 'Invalid response from GitHub'}, status=500)
 # Usa o token do GitHub para pegar dados do usuário e criar/login no Django
 def create_user(request, access_token):
     # Pega os dados básicos do usuário (como login, nome, etc.)
