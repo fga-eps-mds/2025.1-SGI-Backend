@@ -4,9 +4,13 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import status
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -81,16 +85,33 @@ def create_user(request, access_token):
     refresh = RefreshToken.for_user(user)
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
+        # Retornar os tokens como JSON ou redirecionar para o frontend
+    frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
+    return redirect(frontend_url)
+
+def public_github_profile(request, username):
     
+    #Access public data from github
+    github_api_url = f"https://api.github.com/users/{username}"
+    response = requests.get(github_api_url)
 
-    # Retornar os tokens como JSON
-    return JsonResponse({
-        'username': username,
-        'email': email,
-        'access_token': access_jwt,
-        'refresh_token': refresh_jwt,
-    })
+    #If the user not exist
+    if response.status_code == 404:
+        return JsonResponse({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    #If they cant acess github
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error accessing GitHub'}, status=status.HTTP_502_BAD_GATEWAY)
+
+    data = response.json()
+
+    profile_data = {
+        'name': data.get('name'),
+        'avatar_url': data.get('avatar_url'),
+        'bio': data.get('bio'),
+    }
+
+    return JsonResponse(profile_data)
 @csrf_exempt # Decorador para permitir requisições POST sem CSRF, coloquei para testar no Insomnia
 def delete_user(request):
     if request.method != 'DELETE':
@@ -153,3 +174,65 @@ def logout(request):
         return JsonResponse({'success': True, 'message': 'Logout successful'})
     except TokenError as e:
         return JsonResponse({'success': False, 'message': f'Invalid token: {str(e)}'}, status=400)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def user_profile(request):
+    """Endpoint para obter informações do perfil do usuário autenticado"""
+    user = request.user
+    
+    # Buscar dados atuais do GitHub para o usuário
+    try:
+        github_api_url = f"https://api.github.com/users/{user.username}"
+        response = requests.get(github_api_url)
+        
+        if response.status_code == 200:
+            github_data = response.json()
+            profile_data = {
+                'username': user.username,
+                'email': user.email,
+                'name': github_data.get('name') or user.username,
+                'avatar_url': github_data.get('avatar_url'),
+                'bio': github_data.get('bio'),
+                'public_repos': github_data.get('public_repos', 0),
+                'followers': github_data.get('followers', 0),
+                'following': github_data.get('following', 0),
+            }
+        else:
+            # Fallback para dados básicos se não conseguir acessar GitHub
+            profile_data = {
+                'username': user.username,
+                'email': user.email,
+                'name': user.username,
+                'avatar_url': None,
+                'bio': None,
+                'public_repos': 0,
+                'followers': 0,
+                'following': 0,
+            }
+        
+        return JsonResponse(profile_data)
+    except Exception as e:
+        return JsonResponse({'error': f'Error fetching profile: {str(e)}'}, status=500)
+
+@api_view(['GET'])
+def check_auth(request):
+    """Endpoint para verificar se o usuário está autenticado"""
+    auth_header = request.META.get('HTTP_AUTHORIZATION')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'authenticated': False}, status=200)
+    
+    jwt_token = auth_header.split(' ')[1]
+    
+    try:
+        token = AccessToken(jwt_token)
+        user_id = token['user_id']
+        user = User.objects.get(id=user_id)
+        return JsonResponse({
+            'authenticated': True,
+            'username': user.username,
+            'email': user.email
+        })
+    except (TokenError, User.DoesNotExist):
+        return JsonResponse({'authenticated': False}, status=200)
