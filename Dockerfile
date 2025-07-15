@@ -11,6 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar o restante do código
 COPY . .
 
+RUN python manage.py collectstatic --no-input
+
 # Abrir a porta do Django
 EXPOSE 8000
 
