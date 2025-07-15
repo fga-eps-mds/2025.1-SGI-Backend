@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +18,7 @@ from django.utils import timezone
 
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
+@require_http_methods(["GET"])
 def git_auth_code(request):
     github_auth_url = (
         f"https://github.com/login/oauth/authorize"
@@ -28,6 +30,7 @@ def git_auth_code(request):
     return redirect(github_auth_url)
 
 # Recebe o "code" do GitHub e o troca por um token de acesso
+@require_http_methods(["GET"])
 def git_auth_token(request):
     # Obtém o código retornado pelo GitHub
     code = request.GET.get('code')
@@ -106,11 +109,22 @@ def create_user(request, access_token):
 
 import requests
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
+@require_http_methods(["GET"])
 def total_commits(request):
     username = request.session.get('username')
     token = request.session.get('token')
-    user = User.objects.get(username=username)
+    
+    # Validação dos dados da sessão
+    if not username or not token:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    
     date = user.date_joined
 
     headers = {'Authorization': f'bearer {token}',
@@ -149,6 +163,7 @@ def total_commits(request):
     })
         
 
+@require_http_methods(["GET"])        
 def public_github_profile(request, username):
     
     #Access public data from github
@@ -299,13 +314,14 @@ def check_auth(request):
         return JsonResponse({'authenticated': False}, status=200)
 
 
+@require_http_methods(["GET"])
 def total_issues(request):
     #Retrieves the GitHub username and authentication token stored
     username = request.session.get('username')
     token = request.session.get('token')
 
     if not username or not token:
-        return JsonResponse({'error': 'invalid'}, status=400)
+        return JsonResponse({'error': 'Authentication required'}, status=401)
 
     #Tries to find the user in the django database
     try:
