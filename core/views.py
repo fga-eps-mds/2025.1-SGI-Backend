@@ -204,10 +204,15 @@ def total_prs(request):
     profile.pontuacao_prs = total_prs * 15
     profile.save()
 
+    profile.pontos_prs_approved = totalprclosed*10
+    profile.save()
+
     return JsonResponse({
         'username': username,
         'total_prs': total_prs,
-        'pontuacao_prs': profile.pontuacao_prs
+        'pontuacao_prs': profile.pontuacao_prs,
+        'total_pr_fechados':totalprclosed,
+        'total_prs_closed_pontos': profile.pontos_prs_approved,
     })
 
 @require_http_methods(["GET"])

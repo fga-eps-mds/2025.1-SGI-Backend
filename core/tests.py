@@ -189,6 +189,9 @@ class TestsGitFIca(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['total_pr'], 5)
 
+        #verificação se foi salvo na models 
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.pontos_prs_approved, 50)
     #teste para quando a api não consegue passar todos os dados necessarios
     @patch('core.views.requests.post')
     def test_total_prs_closed_data_error(self):
