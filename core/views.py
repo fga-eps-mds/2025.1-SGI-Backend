@@ -16,8 +16,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 def git_auth_code(request):
     github_auth_url = (
         f"https://github.com/login/oauth/authorize"
-        f"?client_id={settings.GITHUB_CLIENT_ID}"
-        f"&redirect_uri={settings.GITHUB_REDIRECT_URI}"
+        f"?client_id={config('GITHUB_CLIENT_ID')}"
+        f"&redirect_uri={config('GITHUB_REDIRECT_URI')}"
         f"&scope=user:email"
     )
     # Redireciona para a página de login/autorização do GitHub
@@ -33,10 +33,10 @@ def git_auth_token(request):
     token_response = requests.post(
         "https://github.com/login/oauth/access_token",
         data={
-            'client_id': settings.GITHUB_CLIENT_ID,
-            'client_secret': settings.GITHUB_CLIENT_SECRET,
+            'client_id': config('GITHUB_CLIENT_ID'),
+            'client_secret': config('GITHUB_CLIENT_SECRET'),
             'code': code,
-            'redirect_uri': settings.GITHUB_REDIRECT_URI,
+            'redirect_uri': config('GITHUB_REDIRECT_URI'),
         },
         headers={'Accept': 'application/json'}
     )
@@ -86,7 +86,8 @@ def create_user(request, access_token):
     access_jwt = str(refresh.access_token)
     refresh_jwt = str(refresh)
         # Retornar os tokens como JSON ou redirecionar para o frontend
-    frontend_url = f"http://localhost:3000/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
+    first_origin_frontend = config('CORS_ALLOWED_ORIGINS').split(',')[0]
+    frontend_url = f"{first_origin_frontend}/auth-success?access_token={access_jwt}&refresh_token={refresh_jwt}&username={username}&email={email}"
     return redirect(frontend_url)
 
 def public_github_profile(request, username):
@@ -236,6 +237,7 @@ def check_auth(request):
         })
     except (TokenError, User.DoesNotExist):
         return JsonResponse({'authenticated': False}, status=200)
+        
 @api_view(['GET'])
 def health_check(request):
     return Response({"status": "ok", "message": "SGI Backend is running!"})
