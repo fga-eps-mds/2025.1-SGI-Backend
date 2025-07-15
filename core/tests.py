@@ -1,17 +1,93 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from django.urls import reverse
 from unittest.mock import patch
+from django.urls import reverse
 from .models import Profile  
 from rest_framework.test import APITestCase, APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import JsonResponse
-from views import blacklist 
+from .views import blacklist
+
+# Constantes para testes
+def get_test_credentials():
+    """Returns test credentials for user creation"""
+    return {
+        'pwd': 'test_password_123!',  # NOSONAR - Test credential only
+        'username': 'test_user',
+        'email': 'test@example.com'
+    }
+
+TEST_CREDENTIALS = get_test_credentials()
+TEST_PASSWORD = TEST_CREDENTIALS['pwd']  # NOSONAR - Test credential only
+TEST_USERNAME = TEST_CREDENTIALS['username']
+TEST_EMAIL = TEST_CREDENTIALS['email'] 
+
+class TestsGitFIca(TestCase):
+    
+    def setUp(self):
+        self.cliente = Client()
+        self.usuario = User.objects.create_user(
+            username='usuario_teste', 
+            password=TEST_PASSWORD
+        )
+        self.usuario.date_joined = '2023-01-01T00:00:00Z'  
+        self.usuario.save()
+
+    @patch('core.views.requests.post')
+    def test_total_commits_sucesso(self, requisicao_mockada):
+        
+        # simulando resposta da api git
+        requisicao_mockada.return_value.status_code = 200
+        
+        requisicao_mockada.return_value.json.return_value = {
+            "data": {
+                "viewer": {
+                    "contributionsCollection": {
+                        "totalCommitContributions": 42
+                    }
+                }
+            }
+        }
+
+        # simulando sessão do usuario
+        sessao = self.cliente.session
+        sessao['username'] = 'usuario_teste'
+        sessao['token'] = 'token_falso'
+        sessao.save()
+
+        #Chamando o método para testar
+        resposta = self.cliente.get('/api/users/id/total_commits')
+
+        #Verificando a resposta
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.json(), {
+            'usuario': 'usuario_teste',
+            'total_commits': 42
+        })
+
+    @patch('core.views.requests.post')
+    def test_total_commits_erro_github(self, requisicao_mockada):
+        #simulando teste erro
+        requisicao_mockada.return_value.status_code = 500
+
+        sessao = self.cliente.session
+        sessao['username'] = 'usuario_teste'
+        sessao['token'] = 'token_falso'
+        sessao.save()
+
+        resposta = self.cliente.get('/api/users/id/total_commits')
+
+        self.assertEqual(resposta.status_code, 500)
+        self.assertIn('error', resposta.json())
+        self.assertEqual(resposta.json()['error'], 'Error GraphQL')
 
 class TotalIssuesViewTest(TestCase):
     def setUp(self):
         #Create a test user
-        self.user = User.objects.create_user(username='user_test', password='test123')
+        self.user = User.objects.create_user(
+            username='user_test', 
+            password=TEST_PASSWORD
+        )
         self.user.save()
 
         #Creates an associated profile if the view's get_or_create needs it
@@ -57,7 +133,10 @@ class MockResponse:
 class ProfileModelTest(TestCase):
     def test_create_profile_with_default_score(self):
         #Create a test user
-        user = User.objects.create_user(username='user_test', password='12345')
+        user = User.objects.create_user(
+            username='user_test', 
+            password=TEST_PASSWORD
+        )
 
         #Create a related Profile
         profile = Profile.objects.create(user=user)
@@ -69,7 +148,10 @@ class ProfileModelTest(TestCase):
         self.assertEqual(profile.pontuacao_issues, 0)
 
     def test_update_pontuacao_issues(self):
-        user = User.objects.create_user(username='user_test2', password='abc123')
+        user = User.objects.create_user(
+            username='user_test2', 
+            password=TEST_PASSWORD
+        )
         profile = Profile.objects.create(user=user)
 
         #Update the score
@@ -91,9 +173,9 @@ class TestsGitFIca(APITestCase):
         #criação do user pra testar o view profile 
         self.user = User.objects.create_user(
             username='teste',
-            password='teste',
+            password=TEST_PASSWORD,
             first_name='Test',
-            email='test@teste.com'
+            email=TEST_EMAIL
         )
         # tem que criar o profile emulado ja que essas info não estã ocontidas no user do django
         self.profile = Profile.objects.create(
@@ -118,12 +200,16 @@ class TestsGitFIca(APITestCase):
         data = response.json()
         self.assertEqual(data['nome'], 'Test')
         self.assertEqual(data['username'], 'teste')
-        self.assertEqual(data['email'], 'test@teste.com')
+        self.assertEqual(data['email'], TEST_EMAIL)
         self.assertEqual(data['avatar'], '')
         self.assertEqual(data['bio'], 'teste')
 
 
-        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
+        self.user = User.objects.create_user(
+            username='usuarioteste123', 
+            password=TEST_PASSWORD,
+            email=TEST_EMAIL
+        )
         self.refresh = RefreshToken.for_user(self.user)
         self.client = APIClient()
         
@@ -158,7 +244,10 @@ class TestsGitFIca(APITestCase):
 
     
 
-        self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123')
+        self.user = User.objects.create_user(
+            username='usuarioteste123', 
+            password=TEST_PASSWORD
+        )
         self.client = APIClient()
     
     #teste pra quando o blacklist recebe um gwt invalido

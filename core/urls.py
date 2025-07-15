@@ -30,5 +30,6 @@ urlpatterns = [
     path('DELETE/api/users/me/', views.delete_user,name='delete_user'),
     path('api/users/<str:username>/', public_github_profile),
     path('api/users/[id]/total_issues',views.total_issues,name = 'total_issues'),
+    path('api/users/id/total_commits',views.total_commits,name='total_commits'),
 
 ]
