@@ -198,8 +198,6 @@ def total_prs(request):
         return JsonResponse({'error': 'Error GraphQL', 'status_code': response.status_code}, status=500)
 
     data = response.json()
-    totalpr = data["data"]["search"]["issueCount"]
-    profile.pontos_prs_abertos = totalpr*10
     total_prs = data.get('data', {}).get('search', {}).get('issueCount', 0)
 
     # Calculates the score based on pull requests
@@ -210,6 +208,56 @@ def total_prs(request):
         'username': username,
         'total_prs': total_prs,
         'pontuacao_prs': profile.pontuacao_prs
+    })
+
+@require_http_methods(["GET"])
+def total_prs_closed(request):
+    username = request.session.get('username')
+    token = request.session.get('token')
+    
+    # Validação dos dados da sessão
+    if not username or not token:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    
+    date = user.date_joined
+
+    # Creates the profile associated with the user to store the score
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    query = f"""
+    query {{
+      search(query: "is:pr is:closed author:{username} created:>={date}", type: ISSUE, first: 1) {{
+        issueCount
+      }}
+    }}
+    """
+
+    headers = {
+        "Authorization": f"bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post("https://api.github.com/graphql", json={"query": query}, headers=headers)
+
+    if response.status_code != 200:
+        return JsonResponse({'error': 'Error GraphQL', 'status_code': response.status_code}, status=500)
+
+    data = response.json()
+    total_prs_closed = data.get('data', {}).get('search', {}).get('issueCount', 0)
+
+    # Calculates the score based on closed pull requests
+    profile.pontuacao_prs_fechados = total_prs_closed * 20
+    profile.save()
+
+    return JsonResponse({
+        'username': username,
+        'total_prs_closed': total_prs_closed,
+        'pontuacao_prs_fechados': profile.pontuacao_prs_fechados
     })
         
 

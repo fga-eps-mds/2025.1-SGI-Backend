@@ -169,10 +169,10 @@ class TestsGitFIca(TestCase):
         self.session['username'] = 'testuser'
         self.session['token'] = 'mocked_github_token'
         self.session.save()
-    
-    #teste para chamadas com sucesso a api do github 
+        
+     #teste para chamadas com sucesso a api do github 
     @patch('core.views.requests.post')
-    def test_total_prs(self, mock_post):
+    def test_total_prs_closed(self, mock_post):
         
         #Mockando resposta da api pra poder fazer o teste da views
         mock_post.return_value.status_code = 200
@@ -185,6 +185,23 @@ class TestsGitFIca(TestCase):
         }
     
         #Conferindo se as saidas foram corretas
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request_fechados')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['total_pr'], 5)
+
+    #teste para quando a api não consegue passar todos os dados necessarios
+    @patch('core.views.requests.post')
+    def test_total_prs_closed_data_error(self):
+        #Fazer o request com dados faltando 
+        session = self.client.session
+        session.clear()
+        session.save()
+
+        response = self.client.get(f'/api/users/{self.user.id}/pull_request_fechados')
+        self.assertEqual(response.status_code, 500)
+        
+    @patch('core.views.requests.post')
+    def test_total_prs(self, mock_post):
         response = self.client.get(f'/api/users/{self.user.id}/pull_request')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['total_pr'], 5)
@@ -195,11 +212,6 @@ class TestsGitFIca(TestCase):
     #teste para quando a api não consegue passar todos os dados necessarios
     @patch('core.views.requests.post')
     def test_total_prs_data_error(self):
-        #Fazer o request com dados faltando 
-        session = self.client.session
-        session.clear()
-        session.save()
-
         response = self.client.get(f'/api/users/{self.user.id}/pull_request')
         self.assertEqual(response.status_code, 500)
 

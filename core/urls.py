@@ -31,7 +31,8 @@ urlpatterns = [
     path('api/users/<str:username>/', public_github_profile),
     path('api/users/[id]/total_issues',views.total_issues,name = 'total_issues'),
     path('api/users/id/total_commits',views.total_commits,name='total_commits'),
-    path('api/users/<int:id>/pull_request',views.total_prs,name='Total PullRequests')
+    path('api/users/<int:id>/pull_request',views.total_prs,name='Total PullRequests'),
+    path('api/users/[id]/pull_request_fechados',views.total_prs_closed,name='Total PullRequests Fechados'),
     # path('api/pontuar-commits/', views.pontuar_commits, name='pontuar_commits'),
 
 ]
