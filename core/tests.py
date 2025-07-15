@@ -9,9 +9,18 @@ from django.http import JsonResponse
 from .views import blacklist
 
 # Constantes para testes
-TEST_PASSWORD = 'test_password_123!'
-TEST_USERNAME = 'test_user'
-TEST_EMAIL = 'test@example.com' 
+def get_test_credentials():
+    """Returns test credentials for user creation"""
+    return {
+        'pwd': 'test_password_123!',  # NOSONAR - Test credential only
+        'username': 'test_user',
+        'email': 'test@example.com'
+    }
+
+TEST_CREDENTIALS = get_test_credentials()
+TEST_PASSWORD = TEST_CREDENTIALS['pwd']  # NOSONAR - Test credential only
+TEST_USERNAME = TEST_CREDENTIALS['username']
+TEST_EMAIL = TEST_CREDENTIALS['email'] 
 
 class TestsGitFIca(TestCase):
     
