@@ -8,6 +8,8 @@ import calendar
 from datetime import datetime
 from collections import defaultdict
 from django.utils.timezone import localtime
+from django.views.decorators.http import require_http_methods
+
 
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
@@ -89,6 +91,7 @@ def create_user(request, access_token):
 
     })
 
+@require_http_methods(["GET"])  
 def totalCommitsMes(request):
     username = request.session.get('username')
     token = request.session.get('token')
@@ -100,10 +103,10 @@ def totalCommitsMes(request):
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         return JsonResponse({'error': 'Usuário não encontrado'}, status=404)
-
+    
     
 
-    
+
     query = f"""
     query {{
       user(login: "{username}") {{
@@ -161,4 +164,3 @@ def totalCommitsMes(request):
     ]
 
     return JsonResponse({"total_commits_por_mes": resultado})
-
