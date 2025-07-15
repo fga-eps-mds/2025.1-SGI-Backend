@@ -10,3 +10,4 @@ python-decouple==3.8
 django-cors-headers
 gunicorn
 dj-database-url
+whitenoise
