@@ -3,13 +3,51 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.http import JsonResponse
-#from models import Profile
+from models import Profile
 from views import blacklist 
+
 
 class TestsGitFIca(APITestCase):
     
     #inicialização e configuração base pros testes do django test
     def setUp(self):
+
+        
+        self.client = APIClient()
+        #criação do user pra testar o view profile 
+        self.user = User.objects.create_user(
+            username='teste',
+            password='teste',
+            first_name='Test',
+            email='test@teste.com'
+        )
+        # tem que criar o profile emulado ja que essas info não estã ocontidas no user do django
+        self.profile = Profile.objects.create(
+            user=self.user,
+            avatar='',
+            bio='teste'
+        )
+        self.refresh = RefreshToken.for_user(self.user)
+    
+    #teste pra solicitaçao sem ter o usuario autenticado no programa 
+    def test_user_profile_no_auutentication(self):
+        response = self.client.get('/api/users/me/')  
+        self.assertEqual(response.status_code, 401)
+    
+    #teste para usuario autenticado 
+    def test_get_user_profile_autenticated(self):
+        # simulando autenticação do usuario
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(self.refresh.access_token)}')
+        
+        response = self.client.get('/api/users/me/') 
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['nome'], 'Test')
+        self.assertEqual(data['username'], 'teste')
+        self.assertEqual(data['email'], 'test@teste.com')
+        self.assertEqual(data['avatar'], '')
+        self.assertEqual(data['bio'], 'teste')
+
 
         self.user = User.objects.create_user(username='usuarioteste123', password='testeteste123',email='test@teste.com')
         self.refresh = RefreshToken.for_user(self.user)
@@ -89,4 +127,5 @@ class TestsGitFIca(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['success'], True)
         self.assertEqual(response.json()['message'], 'Logout successful')
+
 

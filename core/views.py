@@ -4,6 +4,7 @@ import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
@@ -11,6 +12,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 # Redireciona o usuário para o GitHub para autorizar o acesso
 def git_auth_code(request):
@@ -102,6 +104,7 @@ def public_github_profile(request, username):
     #If they cant acess github
     if response.status_code != 200:
         return JsonResponse({'error': 'Error accessing GitHub'}, status=status.HTTP_502_BAD_GATEWAY)
+
 
     data = response.json()
 
@@ -236,3 +239,4 @@ def check_auth(request):
         })
     except (TokenError, User.DoesNotExist):
         return JsonResponse({'authenticated': False}, status=200)
+
